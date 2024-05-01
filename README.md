@@ -20,7 +20,7 @@ Crewbot is a versatile Python-based AI application designed to assist with busin
    ```
 
 2. **Environment Setup:**
-   - Create a `.env` file in the project directory and add your OpenAI API key:
+   - Edit the `.env` file in the project directory and add your OpenAI API key:
 
    ```plaintext
    OPENAI_API_KEY=your_openai_api_key
@@ -34,14 +34,13 @@ Crewbot is a versatile Python-based AI application designed to assist with busin
    Start Crewbot by running:
 
    ```bash
-   streamlit run path_to_your_script.py
+   streamlit run app.py
    ```
 
 ## Usage:
 
-1. **Product Input:** Enter a product name and configure settings from the sidebar.
-2. **Interaction:** Ask questions or give prompts in the chat input.
-3. **Analysis:** Crewbot agents will perform analyses and provide a comprehensive report.
+1. **CrewAi: Run Business Analysis:** Select this checkbox and enter as much information about a business idea. Sit and watch as CrewAi agents build the Business Requirements for you.
+2. **General Interaction:** Ask questions or give prompts in the chat input.
 
 ## Contribution Guidelines:
 
