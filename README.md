@@ -1,57 +1,63 @@
+# CrewBot: Your AI Assistant
 
-# Crewbot: Your AI Assistant
-
-Crewbot is a versatile Python-based AI application designed to assist with business analysis and project management. Leveraging OpenAI's LLM capabilities and crew-based task management, Crewbot provides comprehensive business reports by deploying specialized agents for market research, technological assessments, business model evaluations, and project management. The output is synthesized into a cohesive report for decision-making.
+CrewBot is a Python-based AI application tailored to enhance business analysis and project management tasks. It leverages multiple AI capabilities, offering options between OpenAI's LLM and local LLM configurations through LM Studio. CrewBot efficiently manages tasks and produces detailed business reports utilizing crew-based task execution.
 
 ## Features
 
-- **Market Research:** Provides a detailed analysis of market demand, customer profiles, and competitor strategies.
-- **Technology Assessment:** Assesses technological feasibility, necessary tools, and architectural designs.
-- **Business Evaluation:** Evaluates scalability, revenue streams, and sustainable business models.
-- **Project Management:** Coordinates tasks, manages project scope, and tracks timelines for project development.
-- **Comprehensive Reporting:** Summarizes all analyses into a cohesive Business Requirement Document, providing comprehensive project insights.
+- **Dynamic LLM Selection**: Users can toggle between OpenAI's GPT models and local LLMs for flexibility in AI operations.
+- **Enhanced User Interaction**: Provides a rich interface for users to interact, ask questions, or provide input via an intuitive chat interface.
+- **Crew-based Task Execution**: Integrates the capability to execute business analysis tasks by deploying specialized agents for various analyses.
+- **Customizable AI Environment**: Allows users to configure AI settings such as API keys and local server URLs directly through the interface.
+- **Secure API Key Management**: Facilitates secure handling and updating of API keys via the application's interface.
+
+## Technology Stack
+
+- **Streamlit**: For creating and managing the web app interface.
+- **CrewAi**: For implementing task-based AI agents that handle business analysis and reporting.
+- **Langchain**: To facilitate interaction with large language models and enable complex AI-driven operations.
 
 ## Installation
 
-1. **Python & Libraries:** Ensure Python and necessary libraries are installed by running:
+Ensure Python and necessary libraries are installed by executing the following command:
 
-   ```bash
-   pip install streamlit langchain_core langchain_openai crewai langchain hub dotenv streamlit_chat pydantic
-   ```
+```bash
+pip install streamlit langchain_core langchain_openai crewai langchain dotenv streamlit_chat pydantic
+```
 
-2. **Environment Setup:**
-   - Edit the `.env` file in the project directory and add your OpenAI API key:
+### Environment Setup
 
-   ```plaintext
-   OPENAI_API_KEY=your_openai_api_key
-   ```
+1. **API Key Configuration**:
+    - Modify the `.env` file in the project directory to include your OpenAI API key:
+      ```plaintext
+      OPENAI_API_KEY=your_openai_api_key
+      ```
 
-   - For local LLM, install and configure Ollama and LM Studio:
-      - [Download Ollama](https://ollama.com/).
-      - [Download LM Studio](https://lmstudio.ai/) and choose an LLM model.
+2. **Local LLM Setup**:
+    - Download and set up Ollama and LM Studio for local LLM usage.
+    - Select and configure an LLM model in LM Studio.
 
-3. **Running Crewbot:**
-   Start Crewbot by running:
+### Running CrewBot
 
-   ```bash
-   streamlit run app.py
-   ```
+Start the application by running:
 
-## Usage:
+```bash
+streamlit run app.py
+```
 
-1. **CrewAi: Run Business Analysis:** Select this checkbox and enter as much information about a business idea. Sit and watch as CrewAi agents build the Business Requirements for you.
-2. **General Interaction:** Ask questions or give prompts in the chat input.
+## Usage
 
-## Contribution Guidelines:
+- **LLM Selection**: Choose between using OpenAI's LLM or a local LLM model via the sidebar.
+- **Input Handling**: Input your queries or information in the chat interface to receive AI-generated responses or business analyses.
+- **Business Analysis**: When enabled, CrewBot uses a crew of AI agents to generate detailed business requirement documents based on the input provided.
 
-1. **Fork & Clone:** Fork this repository, then clone it to your machine.
-2. **Branch:** Create a new branch for your feature or bug fix.
-3. **PR:** Submit a Pull Request to the main branch.
+## Contribution Guidelines
 
-## License:
+1. **Fork & Clone**: Fork this repository, then clone it to your machine.
+2. **Create a Branch**: Make a new branch for your proposed feature or bug fix.
+3. **Submit a Pull Request**: Push your branch and changes, then submit a pull request to the main branch.
 
-[MIT License](LICENSE)
+## License
 
----
+This project is licensed under the MIT License, supporting open collaboration.
 
-Crewbot is designed to streamline business analysis and project management, making decision-making easier and more informed.
+CrewBot is designed to make business analysis and project management straightforward, enhancing decision-making through AI-driven insights.
