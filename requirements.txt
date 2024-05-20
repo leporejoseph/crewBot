@@ -1,9 +1,0 @@
-streamlit
-langchain
-langchain-core
-langchain-openai
-langchain_community
-python-dotenv
-crewai
-pydantic
-streamlit-chat

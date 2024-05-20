@@ -1,0 +1,139 @@
+[
+    {
+        "name": "Crew Test 1",
+        "agents": [
+            {
+                "role": "r1",
+                "goal": "g1",
+                "backstory": "bs1",
+                "llm": "OpenAI: gpt-3.5-turbo",
+                "allow_delegation": true,
+                "memory": true,
+                "tools": [
+                    "CSVSearchTool",
+                    "DOCXSearchTool"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "description": "test",
+                "agent_index": 0,
+                "expected_output": "aaa",
+                "context_indexes": [],
+                "tools": [
+                    "DirectorySearchTool",
+                    "DirectoryReadTool"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "Business Requirements Crew",
+        "agents": [
+            {
+                "role": "Technology Expert",
+                "goal": "Assess technological feasibilities and requirements for producing high-quality reports.",
+                "backstory": "A visionary in technological trends.",
+                "allow_delegation": false,
+                "memory": true
+            },
+            {
+                "role": "Market Research Analyst",
+                "goal": "Analyze the market demand and suggest marketing strategies.",
+                "backstory": "A seasoned professional with a deep understanding of market dynamics.",
+                "allow_delegation": false,
+                "memory": true
+            },
+            {
+                "role": "Business Development Consultant",
+                "goal": "Evaluate the business model, focusing on scalability and revenue streams.",
+                "backstory": "Seasoned in shaping business strategies.",
+                "allow_delegation": false,
+                "memory": true
+            },
+            {
+                "role": "Project Manager",
+                "goal": "Coordinate teams, track progress, and manage scope.",
+                "backstory": "A skilled manager ensuring projects run smoothly and on time.",
+                "allow_delegation": false,
+                "memory": true
+            },
+            {
+                "role": "Summary Agent",
+                "goal": "Compile a comprehensive report summarizing all agents' tasks and outputs into a cohesive document.",
+                "backstory": "A dedicated summarizer skilled in creating cohesive narratives.",
+                "allow_delegation": false,
+                "memory": true
+            }
+        ],
+        "tasks": [
+            {
+                "description": "Assess the technological aspects of the app's development and write a report on necessary technologies and approaches.",
+                "agent_index": 0,
+                "expected_output": "Technological assessment report in bullet points with architecture details."
+            },
+            {
+                "description": "Analyze the market demand for the app and write a report on the ideal customer profile, including three competitors using real related companies with pros and cons.",
+                "agent_index": 1,
+                "expected_output": "Market analysis report in bullet points.",
+                "context_indexes": [
+                    0
+                ]
+            },
+            {
+                "description": "Evaluate the business model, focusing on scalability and revenue streams, and create a business plan. Suggest partnerships with real companies.",
+                "agent_index": 2,
+                "expected_output": "Business model evaluation report in bullet points.",
+                "context_indexes": [
+                    0,
+                    1
+                ]
+            },
+            {
+                "description": "Coordinate teams, manage scope, and create a timeline for each section.",
+                "agent_index": 3,
+                "expected_output": "Project management plan with roles and timelines for each stage.",
+                "context_indexes": [
+                    0,
+                    1,
+                    2
+                ]
+            },
+            {
+                "description": "Compile a comprehensive report summarizing all agents' outputs into a cohesive document. Use context from prior tasks to complete dynamic Business Requirement Document.",
+                "agent_index": 4,
+                "expected_output": "Complete Business Requirement Document.",
+                "context_indexes": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        ]
+    },
+    {
+        "name": "Test Crew 2",
+        "agents": [
+            {
+                "role": "Technology Expert",
+                "goal": "Assess technological feasibilities and requirements for producing high-quality reports.",
+                "backstory": "A visionary in technological trends, identifying which technologies best suit the project's needs.",
+                "llm": "LM Studio: http://localhost:1234/v1",
+                "allow_delegation": false,
+                "memory": true,
+                "tools": []
+            }
+        ],
+        "tasks": [
+            {
+                "description": "Compile a comprehensive report summarizing all agents' outputs into a cohesive document. Important: Use context from prior tasks to complete dynamic Business Requirement Document.",
+                "agent_index": 0,
+                "expected_output": "[*DYNAMIC* template that must be used]\n            [start of DYNAMIC template]\n            ### Business Requirement Document\n            1. **Introduction:**\n                - Purpose: Describes the document's purpose and scope.\n                - Scope: Defines project boundaries.\n                - Objectives: Outlines key goals.\n                - Assumptions: Lists assumptions made.\n                - Constraints: Highlights limitations.\n\n            2. **Project Overview:**\n                - Background: Context on project inception.\n                - Goals: Lists primary goals.\n                - Deliverables: Defines key outputs.\n                - Milestones: Significant milestones.\n\n            3. **Stakeholders:**\n                - List: Name, role, interest, responsibilities.\n\n            4. **Business Requirements:**\n                - Needs: ID, description, priority, rationale from the business consultant's report.\n\n            5. **Functional Requirements:**\n                - Features: ID, description, priority, and acceptance criteria.\n\n            6. **Non-Functional Requirements:**\n                - Attributes: ID, description, type, and acceptance criteria.\n\n            7. **Technical Architecture:**\n                - Overview: Architecture overview derived from the technological expert's report.\n                - Components: Name, description.\n\n            8. **Implementation Plan:**\n                - Strategy: Implementation strategy.\n                - Timeline: Phase, description, duration.\n                - Resources: Defines necessary resources.\n\n            9. **Risk Management:**\n                - Risks: ID, description, likelihood, impact, and mitigation strategies.\n\n            10. **Value:**\n                - Estimate of total Development Costs.\n                    - Per Quarter and Year\n                - Estimate of Marketing Costs\n                    - Per Quarter and Year\n                - Estimate of Business Operations Costs.\n                    - Per Quarter and Year\n                - Estimate Total of Rate of Return\n                    - Per Quarter and Year\n\n            11. **Conclusion:**\n                - Summary: Reiterates key points from all agents.\n\n            12. **Appendices:**\n                - Market Research Analyst: Bullet list from the market research analyst's results.\n                - Technology Expert: Detailed bullet list from the technological expert's results.\n                - Business Development Consultant: Detailed bullet list from the business development consultant's results.\n                - Project Manager: Detailed bullet list from the project manager's results.\n                - Additional information related to the project.\n\n            [end of DYNAMIC template]",
+                "context_indexes": [],
+                "tools": []
+            }
+        ]
+    }
+]
