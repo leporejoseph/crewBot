@@ -7,6 +7,7 @@ langchain-chroma
 python-dotenv
 crewai
 crewai[tools]
+browserbase
 pydantic
 streamlit-chat
 chromadb

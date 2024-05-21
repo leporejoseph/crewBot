@@ -1,5 +1,21 @@
 # src\crewai_crews\businessreqs_crew.py
+
+import json
+import os
+from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
+from crewai_tools import (
+    SerperDevTool, BrowserbaseLoadTool,
+    ScrapeWebsiteTool, DirectoryReadTool, FileReadTool, SeleniumScrapingTool,
+    DirectorySearchTool, PDFSearchTool, TXTSearchTool,
+    CSVSearchTool, XMLSearchTool, JSONSearchTool,
+    DOCXSearchTool, MDXSearchTool, PGSearchTool,
+    WebsiteSearchTool, GithubSearchTool, CodeDocsSearchTool,
+    YoutubeVideoSearchTool, YoutubeChannelSearchTool
+)
+
+# Load environment variables from .env file
+load_dotenv()
 
 class DynamicCrewHandler:
     def __init__(self, name, agents, tasks, llm, user_prompt, chat_history):
@@ -10,9 +26,54 @@ class DynamicCrewHandler:
         self.user_prompt = user_prompt
         self.chat_history = chat_history
 
+    def get_tool_instance(self, tool_name):
+        if tool_name == "SerperDevTool":
+            return SerperDevTool(api_key=os.getenv("SERPER_API_KEY"))
+        elif tool_name == "BrowserbaseLoadTool":
+            return BrowserbaseLoadTool(api_key=os.getenv("BROWSERBASE_API_KEY"))
+        elif tool_name == "ScrapeWebsiteTool":
+            return ScrapeWebsiteTool()
+        elif tool_name == "DirectoryReadTool":
+            return DirectoryReadTool()
+        elif tool_name == "FileReadTool":
+            return FileReadTool()
+        elif tool_name == "SeleniumScrapingTool":
+            return SeleniumScrapingTool()
+        elif tool_name == "DirectorySearchTool":
+            return DirectorySearchTool()
+        elif tool_name == "PDFSearchTool":
+            return PDFSearchTool()
+        elif tool_name == "TXTSearchTool":
+            return TXTSearchTool()
+        elif tool_name == "CSVSearchTool":
+            return CSVSearchTool()
+        elif tool_name == "XMLSearchTool":
+            return XMLSearchTool()
+        elif tool_name == "JSONSearchTool":
+            return JSONSearchTool()
+        elif tool_name == "DOCXSearchTool":
+            return DOCXSearchTool()
+        elif tool_name == "MDXSearchTool":
+            return MDXSearchTool()
+        elif tool_name == "PGSearchTool":
+            return PGSearchTool()
+        elif tool_name == "WebsiteSearchTool":
+            return WebsiteSearchTool()
+        elif tool_name == "GithubSearchTool":
+            return GithubSearchTool()
+        elif tool_name == "CodeDocsSearchTool":
+            return CodeDocsSearchTool()
+        elif tool_name == "YoutubeVideoSearchTool":
+            return YoutubeVideoSearchTool()
+        elif tool_name == "YoutubeChannelSearchTool":
+            return YoutubeChannelSearchTool()
+        else:
+            return None
+
     def create_agents(self):
         agents = []
         for i, agent in enumerate(self.agents):
+            tools = [self.get_tool_instance(tool) for tool in agent.get("tools", [])]
             if i == 0:
                 goal = f"""
                     {agent['goal']}
@@ -38,7 +99,7 @@ class DynamicCrewHandler:
                     llm=self.llm,
                     allow_delegation=agent["allow_delegation"],
                     memory=agent["memory"],
-                    tools=agent.get("tools", [])  # Default to an empty list if 'tools' is not present
+                    tools=tools
                 )
             )
         return agents
@@ -48,13 +109,14 @@ class DynamicCrewHandler:
         for task in self.tasks:
             agent = agent_objects[task["agent_index"]]
             context_tasks = [tasks[idx] for idx in task.get("context_indexes", [])]
+            tools = [self.get_tool_instance(tool) for tool in task.get("tools", [])]
             tasks.append(
                 Task(
                     description=task["description"],
                     agent=agent,
                     expected_output=task["expected_output"],
                     context=context_tasks,
-                    tools=task.get("tools", [])  # Default to an empty list if 'tools' is not present
+                    tools=tools  
                 )
             )
         return tasks
@@ -68,7 +130,15 @@ class DynamicCrewHandler:
             process=Process.sequential,
             verbose=True
         )
-        return crew.kickoff()
+        response = crew.kickoff()
+        new_crew_data = {
+            "name": self.name,
+            "agents": self.agents,
+            "tasks": self.tasks
+        }
+        
+        # Return response along with the newly saved crew data
+        return response, new_crew_data
 
 def create_crewai_setup(chat_history, user_prompt, llm):
     # Define agents with corresponding goals and backstories

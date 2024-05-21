@@ -7,3 +7,6 @@ src/utils/__pycache__/__init__.cpython-312.pyc
 src/utils/__pycache__/document_handler.cpython-312.pyc
 src/utils/__pycache__/llm_handler.cpython-312.pyc
 src/utils/__pycache__/streamlit_expander.cpython-312.pyc
+src/crewai_crews/crews.json
+src/db/chroma.sqlite3
+src/crewai_crews/crews.json
