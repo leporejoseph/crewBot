@@ -1,34 +1,5 @@
 [
     {
-        "name": "Crew Test 1",
-        "agents": [
-            {
-                "role": "r1",
-                "goal": "g1",
-                "backstory": "bs1",
-                "llm": "OpenAI: gpt-3.5-turbo",
-                "allow_delegation": true,
-                "memory": true,
-                "tools": [
-                    "CSVSearchTool",
-                    "DOCXSearchTool"
-                ]
-            }
-        ],
-        "tasks": [
-            {
-                "description": "test",
-                "agent_index": 0,
-                "expected_output": "aaa",
-                "context_indexes": [],
-                "tools": [
-                    "DirectorySearchTool",
-                    "DirectoryReadTool"
-                ]
-            }
-        ]
-    },
-    {
         "name": "Business Requirements Crew",
         "agents": [
             {

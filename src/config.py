@@ -14,9 +14,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 def init_session_state():
     """Initialize session state variables."""
     defaults = {
-        "lmStudio_llm_selected": False, "lm_studio_model": LM_STUDIO_MODEL, "lm_studio_base_url": LM_STUDIO_BASE_URL,
-        "openai_llm_selected": True, "openai_api_model": "gpt-3.5-turbo", "messages": [], "llm_selection_changed": False,
-        "callback_handler": StreamingStdOutCallbackHandler(), "chat_history": StreamlitChatMessageHistory(key="chat_messages"),
+        "lmStudio_llm_selected": False,
+        "lm_studio_model": LM_STUDIO_MODEL,
+        "lm_studio_base_url": LM_STUDIO_BASE_URL,
+        "openai_llm_selected": True,
+        "openai_api_model": "gpt-3.5-turbo",
+        "messages": [],
+        "llm_selection_changed": False,
+        "callback_handler": StreamingStdOutCallbackHandler(),
+        "chat_history": StreamlitChatMessageHistory(key="chat_messages"),
         "prompt": PromptTemplate(
             input_variables=["history", "context", "query"],
             template="""
@@ -33,7 +39,10 @@ def init_session_state():
             """
         ),
         "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
-        "embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"), "vectorstore": None, "retriever": None, "qa_chain": None
+        "embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
+        "vectorstore": None,
+        "retriever": None,
+        "qa_chain": None
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)

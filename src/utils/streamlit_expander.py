@@ -36,3 +36,6 @@ class StreamToExpander:
         if "\n" in data:
             self.expander.markdown(''.join(self.buffer), unsafe_allow_html=True)
             self.buffer = []
+
+    def flush(self):
+        pass
