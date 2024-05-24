@@ -15,10 +15,12 @@ def set_initial_llm():
     """Set the initial LLM state based on the selected model."""
     if st.session_state.lmStudio_llm_selected:
         st.session_state.llm = init_llm(None, st.session_state.lm_studio_model, st.session_state.lm_studio_base_url)
-        st.session_state.current_llm = f"LM Studio: {st.session_state.lm_studio_base_url}"
+        st.session_state.llm_name = "LM Studio"
+        st.session_state.llm_model = f"{st.session_state.lm_studio_base_url}"
     else:
         st.session_state.llm = init_llm(os.getenv("OPENAI_API_KEY"), st.session_state.get('openai_api_model', 'default-model'), None)
-        st.session_state.current_llm = f"OpenAI: {st.session_state.get('openai_api_model', 'Default')}"
+        st.session_state.llm_name = "OpenAI"
+        st.session_state.llm_model = f"{st.session_state.get('openai_api_model', 'Default')}"
 
 def update_api_key():
     """Update the API key and reinitialize the LLM."""

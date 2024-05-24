@@ -92,7 +92,7 @@ if 'show_apikey_toggle' not in st.session_state:
 
 # Initialize variables
 agent_task_outputs = []
-
+llm_options = ["OpenAI", "LM Studio"]
 chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
 
 # Define the colors in hex
@@ -103,7 +103,6 @@ st.markdown("""<style>body { font-family: Arial, sans-serif; } h2 { color: #CD40
 
 # Sidebar configuration for LLM Selection
 with st.sidebar.expander("**LLM Selection**", True):
-    llm_options = ["OpenAI", "LM Studio"]
     llm_selected = st.selectbox("LLM", llm_options, index=0)
 
     st.session_state.openai_llm_selected = (llm_selected == "OpenAI")
@@ -111,10 +110,10 @@ with st.sidebar.expander("**LLM Selection**", True):
     toggle_selection("openai_llm_selected" if st.session_state.openai_llm_selected else "lmStudio_llm_selected")
 
     if st.session_state.openai_llm_selected:
-        st.session_state.current_llm = f"OpenAI: {st.session_state.get('openai_api_model', 'Default')}"
+        st.session_state.current_llm = f"OpenAI"
         st.text_input('Model', value=st.session_state.openai_api_model, key='openai_api_model', on_change=set_initial_llm)
     elif st.session_state.lmStudio_llm_selected:
-        st.session_state.current_llm = f"LM Studio: {st.session_state.get('lm_studio_base_url', 'Default')}"
+        st.session_state.current_llm = f"LM Studio"
         st.text_input('Model', value=st.session_state.lm_studio_model, key='lm_studio_model', on_change=set_initial_llm)
         st.text_input('Base URL', value=st.session_state.lm_studio_base_url, key='lm_studio_base_url', on_change=set_initial_llm)
 
@@ -150,13 +149,13 @@ def create_new_agent_form(agent_list_container):
     agent_form = st.empty()
     #agent_list_container = st.empty()  # Container for the agent list
     active_tools = st.session_state.get("active_tools", [])
-    with agent_form.form(key="agent_form", clear_on_submit=True):
+    with agent_form.form(key="agent_form", clear_on_submit=True, border=False):
         st.subheader("Add Agent")
         role = st.text_input("Agent Name", key="role_input", placeholder="Research Analyst")
         tools = st.multiselect("Tools", active_tools, key="tools_input")
         goal = st.text_area("Goal", key="goal_input", placeholder="Analyze the company website and provided description to extract insights on culture, values, and specific needs.")
         backstory = st.text_area("Backstory", key="backstory_input", placeholder="Expert in analyzing company cultures and identifying key values and needs from various sources, including websites and brief descriptions.")
-        llm = st.text_input("LLM", value=st.session_state.current_llm, key="llm_input")
+        llm = st.text_input("LLM", value=st.session_state.current_llm, key="llm_input", disabled=True)
         allow_delegation = st.toggle("Allow Delegation", value=False, key="allow_delegation_input")
         memory = st.toggle("Memory", value=True, key="memory_input")
 
@@ -178,26 +177,23 @@ def create_new_agent_form(agent_list_container):
 # Updated create_new_task_form
 @st.experimental_fragment
 def create_new_task_form(task_list_container):
-    task_form = st.empty()
-    #task_list_container = st.empty()  # Container for the task list
     active_tools = st.session_state.get("active_tools", [])
-    with task_form.form(key="task_form", clear_on_submit=True):
+    agent_names = [agent['role'] for agent in st.session_state.new_agents]
+
+    with st.form(key="task_form", clear_on_submit=True):
         st.subheader("Add Task")
-        description = st.text_area("Description", key="description_input", placeholder=
-            """Analyze the provided company website and the hiring manager's company's domain, description. Focus on understanding the company's culture, values, and mission. Identify unique selling points and specific projects or achievements highlighted on the site.Compile a report summarizing these insights, specifically how they can be leveraged in a job posting to attract the right candidates.""")
+        description = st.text_area("Description", key="description_input", placeholder="Analyze the provided company website and the hiring manager's company's domain, description. Focus on understanding the company's culture, values, and mission. Identify unique selling points and specific projects or achievements highlighted on the site.Compile a report summarizing these insights, specifically how they can be leveraged in a job posting to attract the right candidates.")
         tools = st.multiselect("Tools", active_tools, key="task_tools_input")
-        if st.session_state.new_agents:
-            agent_index = st.number_input("Agent Index for Task", min_value=0, max_value=len(st.session_state.new_agents) - 1, step=1, key="agent_index_input")
-        else:
-            agent_index = 0
-        expected_output = st.text_area("Expected Output", key="expected_output_input", placeholder="""A comprehensive report detailing the company's culture, values, and mission, along with specific selling points relevant to the job role. Suggestions on incorporating these insights into the job posting should be included.""")
-        context_indexes = st.multiselect("Context Task Indexes for Task", list(range(len(st.session_state.new_tasks))), key="context_indexes_input")
+        assigned_agent = st.selectbox("Assigned Agent", agent_names, key="agent_name_input")
+        expected_output = st.text_area("Expected Output", key="expected_output_input", placeholder="A comprehensive report detailing the company's culture, values, and mission, along with specific selling points relevant to the job role. Suggestions on incorporating these insights into the job posting should be included.")
+        context_indexes = st.multiselect("Context Task Indexes for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], key="context_indexes_input")
+
         if st.form_submit_button("Add Task"):
             st.session_state.new_tasks.append({
                 "description": description,
-                "agent_index": agent_index,
+                "agent_index": agent_names.index(assigned_agent),
                 "expected_output": expected_output,
-                "context_indexes": context_indexes,
+                "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
                 "tools": tools
             })
             st.session_state.update({"show_task_form": False})
@@ -401,15 +397,22 @@ def delete_crew(index):
 # Function to create an editable dialog for agent
 @st.experimental_dialog("Edit Agent")
 def edit_agent_dialog(agent, agent_index, crew_index):
-    role = st.text_input("Role", value=agent["role"], key=f"agent_role_{agent_index}")
-    goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
-    backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
-    llm = st.text_input("LLM", value=agent.get("llm", st.session_state.current_llm), key=f"agent_llm_{agent_index}")
-    allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
-    memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
-    tools = st.text_area("Tools", value=", ".join(agent.get("tools", [])), key=f"agent_tools_{agent_index}")
+    llm_options = ["OpenAI", "LM Studio"]
+    current_llm = st.session_state.current_llm  # Use the currently selected LLM
+    llm_index = llm_options.index(current_llm)
+    
+    with st.form(key=f"edit_agent_form_{agent_index}", border=False):
+        role = st.text_input("Agent Name", value=agent["role"], key=f"agent_role_{agent_index}")
+        tools = st.multiselect("Tools", TOOL_NAMES, default=agent.get("tools", []), key=f"agent_tools_{agent_index}")
+        goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
+        backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
+        llm = st.selectbox("LLM", llm_options, index=llm_index, key=f"agent_llm_{agent_index}", disabled=True)
+        allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
+        memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
 
-    if st.button("Save"):
+        submit_button = st.form_submit_button(label="Save Agent")
+
+    if submit_button:
         st.session_state.crew_list[crew_index]["agents"][agent_index] = {
             "role": role,
             "goal": goal,
@@ -417,16 +420,36 @@ def edit_agent_dialog(agent, agent_index, crew_index):
             "llm": llm,
             "allow_delegation": allow_delegation,
             "memory": memory,
-            "tools": tools.split(", ")
+            "tools": tools
         }
         st.rerun()
 
+# Function to create an editable dialog for task
 @st.experimental_dialog("Edit Task")
 def edit_task_dialog(task, task_index, crew_index):
-    st.write(f"Edit Task {task_index} in Crew {crew_index}")
-    task_description = st.text_area("Description", value=task["description"])
-    if st.button("Save"):
-        st.session_state.crew_list[crew_index]["tasks"][task_index]["description"] = task_description
+    # Get agent names from the current crew list
+    current_agents = st.session_state.crew_list[crew_index]["agents"]
+    agent_names = [agent['role'] for agent in current_agents]
+    active_tools = [tool["name"] for tool in st.session_state.get("tools", TOOLS)]
+
+    with st.form(key=f"edit_task_form_{task_index}"):
+        st.write(f"Edit Task {task_index + 1} in Crew {crew_index + 1}")
+        description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
+        tools = st.multiselect("Tools", active_tools, default=task.get("tools", []), key=f"task_tools_{task_index}")
+        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
+        expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
+        context_indexes = st.multiselect("Context Task Indexes for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], default=[f'Task {i+1}' for i in task.get("context_indexes", [])], key=f"task_context_indexes_{task_index}")
+
+        submit_button = st.form_submit_button(label="Save Task")
+
+    if submit_button:
+        st.session_state.crew_list[crew_index]["tasks"][task_index] = {
+            "description": description,
+            "agent_index": agent_names.index(assigned_agent),
+            "expected_output": expected_output,
+            "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
+            "tools": tools
+        }
         st.rerun()
 
 # Function to create new crew container
@@ -695,13 +718,14 @@ else:
             st.chat_message("assistant").write(response)
 
         for i, selected in enumerate(st.session_state.crewai_crew_selected):
+            crew_logs = st.empty()
             if selected:
-                with st.container():
-                    start_time = time.time()
-                    with st.chat_message("assistant"):
-                        with st.spinner(f"{st.session_state.crew_list[i]['name']} Working..."):
-                            with st.expander(f"{st.session_state.crew_list[i]['name']} Interaction Logs", False):
+                start_time = time.time()
 
+                with crew_logs.container():
+                    with st.chat_message("assistant"):
+                        with st.expander(f"{st.session_state.crew_list[i]['name']} Interaction Logs", False):
+                            with st.spinner(f"{st.session_state.crew_list[i]['name']} Working..."):
                                 # Format output text and color coding for different agents
                                 sys.stdout = StreamToExpander(st, agent_task_outputs)
 

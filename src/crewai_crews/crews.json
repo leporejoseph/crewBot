@@ -6,6 +6,7 @@
                 "role": "Technology Expert",
                 "goal": "Assess technological feasibilities and requirements for producing high-quality reports.",
                 "backstory": "A visionary in technological trends.",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true
             },
@@ -13,6 +14,7 @@
                 "role": "Market Research Analyst",
                 "goal": "Analyze the market demand and suggest marketing strategies.",
                 "backstory": "A seasoned professional with a deep understanding of market dynamics.",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true
             },
@@ -20,6 +22,7 @@
                 "role": "Business Development Consultant",
                 "goal": "Evaluate the business model, focusing on scalability and revenue streams.",
                 "backstory": "Seasoned in shaping business strategies.",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true
             },
@@ -27,6 +30,7 @@
                 "role": "Project Manager",
                 "goal": "Coordinate teams, track progress, and manage scope.",
                 "backstory": "A skilled manager ensuring projects run smoothly and on time.",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true
             },
@@ -34,6 +38,7 @@
                 "role": "Summary Agent",
                 "goal": "Compile a comprehensive report summarizing all agents' tasks and outputs into a cohesive document.",
                 "backstory": "A dedicated summarizer skilled in creating cohesive narratives.",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true
             }
@@ -91,7 +96,7 @@
                 "role": "Technology Expert",
                 "goal": "Assess technological feasibilities and requirements for producing high-quality reports.",
                 "backstory": "A visionary in technological trends, identifying which technologies best suit the project's needs.",
-                "llm": "LM Studio: http://localhost:1234/v1",
+                "llm": "LM Studio",
                 "allow_delegation": false,
                 "memory": true,
                 "tools": []
