@@ -15,27 +15,27 @@ class StreamToExpander:
     def write(self, data):
         """Process and format the input data, extract agent names and task outputs, and append to buffer for display."""
         cleaned_data = re.sub(r'\x1B\[[0-9;]*[mK]', '', data)
-        agent_name_match = re.search(r"== Working Agent: (.*?)\n", cleaned_data)
-        task_output_match = re.search(r"== \[(.*?)\] Task output: (.*?)\n", cleaned_data, re.DOTALL)
-        
-        if agent_name_match and task_output_match:
-            agent_name = agent_name_match.group(1)
-            task_output = task_output_match.group(2)
-            self.agent_task_outputs.append({"Agent": agent_name, "Output": task_output})
-            st.toast(":robot_face: " + agent_name)
-        
-        if agent_name_match:
-            agent_name = agent_name_match.group(1)
+
+        # Adjusted regex pattern to match "== Working Agent:" and capture the agent name
+        agent_name_matches = re.findall(r"== Working Agent: (.*?)(?:\n|$)", cleaned_data)
+
+        # Process all agent name matches
+        for agent_name in agent_name_matches:
+            st.toast(f"Starting Agent: {agent_name}")
+
             if agent_name not in self.agent_color_map:
                 self.agent_color_map[agent_name] = self.agent_colors[self.current_color_index % len(self.agent_colors)]
                 self.current_color_index += 1
+            
             color = self.agent_color_map[agent_name]
             cleaned_data = cleaned_data.replace(agent_name, f":{color}[{agent_name}]")
-        
+
         self.buffer.append(cleaned_data)
+        
+        # Append data to buffer and check for newline to update the expander
         if "\n" in data:
             self.expander.markdown(''.join(self.buffer), unsafe_allow_html=True)
-            self.buffer = []
+            self.buffer.clear()
 
     def flush(self):
         pass

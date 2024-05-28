@@ -18,7 +18,6 @@ def init_session_state():
         "lm_studio_model": LM_STUDIO_MODEL,
         "lm_studio_base_url": LM_STUDIO_BASE_URL,
         "openai_llm_selected": True,
-        "openai_api_model": "gpt-3.5-turbo",
         "messages": [],
         "llm_selection_changed": False,
         "callback_handler": StreamingStdOutCallbackHandler(),

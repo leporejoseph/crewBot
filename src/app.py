@@ -59,36 +59,40 @@ TOOLS = [
 
 TOOL_NAMES = [tool["name"] for tool in TOOLS]
 
-# Persistent global variables
-if 'crew_list' not in st.session_state:
-    file_path = 'crewai_crews/crews.json'
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
-            st.session_state.crew_list = json.load(file)
-    else:
-        st.session_state.crew_list = [example_crew_data]
-        with open(file_path, 'w') as file:
-            json.dump(st.session_state.crew_list, file, indent=4)
-if 'crewai_crew_selected' not in st.session_state:
-    st.session_state.crewai_crew_selected = [False] * len(st.session_state.crew_list)
-else:
-    if len(st.session_state.crewai_crew_selected) != len(st.session_state.crew_list):
+# Initialize session state variables
+def initialize_session_state():
+    if 'crew_list' not in st.session_state:
+        file_path = 'crewai_crews/crews.json'
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                st.session_state.crew_list = json.load(file)
+        else:
+            st.session_state.crew_list = [example_crew_data]
+            with open(file_path, 'w') as file:
+                json.dump(st.session_state.crew_list, file, indent=4)
+    if 'crewai_crew_selected' not in st.session_state:
         st.session_state.crewai_crew_selected = [False] * len(st.session_state.crew_list)
+    else:
+        if len(st.session_state.crewai_crew_selected) != len(st.session_state.crew_list):
+            st.session_state.crewai_crew_selected = [False] * len(st.session_state.crew_list)
+    if 'tools' not in st.session_state:
+        st.session_state.tools = []
+    if 'new_agents' not in st.session_state:
+        st.session_state.new_agents = []
+    if 'show_agent_form' not in st.session_state:
+        st.session_state.show_agent_form = False
+    if 'show_crew_container' not in st.session_state:
+        st.session_state.show_crew_container = False
+    if 'show_task_form' not in st.session_state:
+        st.session_state.show_task_form = False
+    if 'new_tasks' not in st.session_state:
+        st.session_state.new_tasks = []
+    if 'show_apikey_toggle' not in st.session_state:
+        st.session_state.show_apikey_toggle = False
+    if 'dialog_open' not in st.session_state:
+        st.session_state.dialog_open = False
 
-if 'tools' not in st.session_state:
-    st.session_state.tools = []
-if 'new_agents' not in st.session_state:
-    st.session_state.new_agents = []
-if 'show_agent_form' not in st.session_state:
-    st.session_state.show_agent_form = False
-if 'show_crew_container' not in st.session_state:
-    st.session_state.show_crew_container = False
-if 'show_task_form' not in st.session_state:
-    st.session_state.show_task_form = False
-if 'new_tasks' not in st.session_state:
-    st.session_state.new_tasks = []
-if 'show_apikey_toggle' not in st.session_state:
-    st.session_state.show_apikey_toggle = False
+initialize_session_state()
 
 # Initialize variables
 agent_task_outputs = []
@@ -111,11 +115,11 @@ with st.sidebar.expander("**LLM Selection**", True):
 
     if st.session_state.openai_llm_selected:
         st.session_state.current_llm = f"OpenAI"
-        st.text_input('Model', value=st.session_state.openai_api_model, key='openai_api_model', on_change=set_initial_llm)
+        st.text_input('Model', value=st.session_state.get("openai_api_model", "gpt-3.5-turbo"), key='openai_api_model', on_change=set_initial_llm)
     elif st.session_state.lmStudio_llm_selected:
         st.session_state.current_llm = f"LM Studio"
-        st.text_input('Model', value=st.session_state.lm_studio_model, key='lm_studio_model', on_change=set_initial_llm)
-        st.text_input('Base URL', value=st.session_state.lm_studio_base_url, key='lm_studio_base_url', on_change=set_initial_llm)
+        st.text_input('Model', value=st.session_state.get("lm_studio_model", ""), key='lm_studio_model', on_change=set_initial_llm)
+        st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", ""), key='lm_studio_base_url', on_change=set_initial_llm)
 
     if st.session_state.openai_llm_selected:
         st.session_state.show_apikey_toggle = st.toggle("Show Api Key", value=False, key='show_openai_key')
@@ -143,11 +147,264 @@ def reset_form_states():
     st.session_state.show_agent_form = False
     st.session_state.show_task_form = False
 
+# Function to close all dialogs
+def close_all_dialogs():
+    keys_to_update = ['show_agent_form', 'show_task_form', 'show_crew_container']
+    for key in keys_to_update:
+        st.session_state[key] = False
+
+# Callback functions to show the forms
+@st.experimental_fragment
+def show_agent_form():
+    st.session_state.show_agent_form = True
+
+@st.experimental_fragment
+def show_task_form():
+    st.session_state.show_task_form = True
+
+# Function to create an editable dialog for agent
+@st.experimental_dialog("Edit Agent")
+def edit_agent_dialog(agent, agent_index):
+    st.session_state.dialog_open = True  
+    close_all_dialogs()
+    llm_options = ["OpenAI", "LM Studio"]
+    current_llm = st.session_state.current_llm  # Use the currently selected LLM
+    llm_index = llm_options.index(current_llm)
+    
+    with st.form(key=f"edit_agent_form_{agent_index}", border=False):
+        role = st.text_input("Agent Name", value=agent["role"], key=f"agent_role_{agent_index}")
+        tools = st.multiselect("Tools", TOOL_NAMES, default=agent.get("tools", []), key=f"agent_tools_{agent_index}")
+        goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
+        backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
+        llm = st.selectbox("LLM", llm_options, index=llm_index, key=f"agent_llm_{agent_index}", disabled=True)
+        allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
+        memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
+
+        submit_button = st.form_submit_button(label="Save Agent")
+
+        if submit_button:
+            # Find the correct crew and update the agent
+            for crew in st.session_state.crew_list:
+                if agent in crew["agents"]:
+                    crew["agents"][agent_index] = {
+                        "role": role,
+                        "goal": goal,
+                        "backstory": backstory,
+                        "llm": llm,
+                        "allow_delegation": allow_delegation,
+                        "memory": memory,
+                        "tools": tools
+                    }
+                    break
+            st.session_state.dialog_open = False 
+            st.rerun()
+
+# Function to create an editable dialog for task
+@st.experimental_dialog("Edit Task")
+def edit_task_dialog(task, task_index):
+    st.session_state.dialog_open = True
+    close_all_dialogs()
+    
+    # Find the correct crew
+    crew = next((crew for crew in st.session_state.crew_list if task in crew["tasks"]), None)
+    if not crew:
+        st.error("Task not found in any crew.")
+        return
+    
+    # Get agent names from the current crew list
+    current_agents = crew["agents"]
+    agent_names = [agent['role'] for agent in current_agents]
+
+    with st.form(key=f"edit_task_form_{task_index}", border=False):
+        st.write(f"Edit Task {task_index + 1}")
+        description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
+        tools = st.multiselect("Tools", TOOL_NAMES, default=task.get("tools", []), key=f"task_tools_{task_index}")
+        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
+        expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
+        context_task_options = [f'Task {i+1}' for i in range(len(crew["tasks"]))]
+        default_context_tasks = [f'Task {i+1}' for i in task.get("context_indexes", [])]
+        context_indexes = st.multiselect(
+            "Context Task Indexes for Task",
+            options=context_task_options,
+            default=default_context_tasks,
+            key=f"task_context_indexes_{task_index}"
+        )
+
+        submit_button = st.form_submit_button(label="Save Task")
+
+        if submit_button:
+            crew["tasks"][task_index] = {
+                "description": description,
+                "agent_index": agent_names.index(assigned_agent),
+                "expected_output": expected_output,
+                "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
+                "tools": tools
+            }
+            st.session_state.dialog_open = False 
+            st.rerun()
+
+# Function to update agent list display
+def update_agent_list(container):
+    with container:
+        agent_cols = st.columns(5)
+        for agent_index, agent in enumerate(st.session_state.new_agents):
+            tool_count = len(agent.get('tools', []))
+            color_index = agent_index % len(agent_colors)
+            card_styles = {
+                "card": {
+                    "width": "100%",
+                    "height": "250px",
+                    "border-radius": "10px",
+                    "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
+                    "margin": "0px",
+                    "background-color": agent_colors[color_index],
+                },
+                "title": {
+                    "font-size": "26px",
+                },
+                "text": {
+                    "font-family": "Roboto, Open Sans, Arial, sans-serif",
+                    "font-size": "18px",
+                    "padding": "10px",
+                    "overflow": "hidden",
+                    "text-overflow": "ellipsis",
+                    "white-space": "nowrap",
+                    "max-height": "3em"
+                }
+            }
+            with agent_cols[agent_index % 5]:
+                card(
+                    title=agent['role'],
+                    text=f"Tools: {tool_count if tool_count > 0 else 'N/A'}",
+                    on_click=lambda idx=agent_index: handle_card_click(agent, idx, is_agent=True),
+                    styles=card_styles,
+                    key=f"agent-card-{agent_index}-{random.randint(1, 100000)}"
+                )
+        # Add card to prompt adding new agents
+        card_styles_empty = {
+            "card": {
+                "width": "100%",
+                "height": "250px",
+                "border-radius": "10px",
+                "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
+                "margin": "0px",
+                "background-color": "#262730",
+            },
+            "title": {
+                "font-size": "26px",
+            },
+            "text": {
+                "font-family": "Roboto, Open Sans, Arial, sans-serif",
+                "font-size": "18px",
+                "padding": "10px",
+                "overflow": "hidden",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap",
+                "max-height": "3em"
+            }
+        }
+        with agent_cols[(len(st.session_state.new_agents)) % 5]:
+            card(
+                title="No Agents Added" if len(st.session_state.new_agents) == 0 else "",
+                text="Click Here to Add an Agent" if len(st.session_state.new_agents) == 0 else "Click Here to Add Another Agent",
+                on_click=show_agent_form,
+                styles=card_styles_empty,
+                key=f"agent-card-add-new-{len(st.session_state.new_agents)}"
+            )
+
+        if st.session_state.show_agent_form:
+            create_new_agent_form(container)
+
+# Function to update task list display
+def update_task_list(container):
+    with container:
+        task_cols = st.columns(5)
+        for task_index, task in enumerate(st.session_state.new_tasks):
+            # Ensure task data is properly accessed
+            task_description = task.get('description', 'No description')
+            task_tools = ', '.join(task.get('tools', [])) if task.get('tools') else 'N/A'
+            task_context = ', '.join([f'Task {idx+1}' for idx in task.get('context_indexes', [])]) if task.get('context_indexes') else 'N/A'
+            task_agent_role = task.get('agent_role', 'No agent role')
+
+            color_index = task_index % len(agent_colors)
+            card_styles = {
+                "card": {
+                    "width": "100%",
+                    "height": "250px",
+                    "border-radius": "10px",
+                    "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
+                    "margin": "0px",
+                    "background-color": agent_colors[color_index],
+                },
+                "title": {
+                    "font-size": "26px",
+                },
+                "text": {
+                    "font-family": "Roboto, Open Sans, Arial, sans-serif",
+                    "font-size": "18px",
+                    "padding": "10px",
+                    "overflow": "hidden",
+                    "text-overflow": "ellipsis",
+                    "white-space": "nowrap",
+                    "max-height": "3em"
+                }
+            }
+            with task_cols[task_index % 5]:
+                card(
+                    title=task_description,
+                    text=f"Tools: {task_tools}\nAgent: {task_agent_role}\nContext: {task_context}",
+                    on_click=lambda tidx=task_index: handle_card_click(task, tidx, is_agent=False),
+                    styles=card_styles,
+                    key=f"task-card-{task_index}-{random.randint(1, 100000)}"
+                )
+        
+        # Add card to prompt adding new tasks
+        card_styles_empty = {
+            "card": {
+                "width": "100%",
+                "height": "250px",
+                "border-radius": "10px",
+                "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
+                "margin": "0px",
+                "background-color": "#262730",
+            },
+            "title": {
+                "font-size": "26px",
+            },
+            "text": {
+                "font-family": "Roboto, Open Sans, Arial, sans-serif",
+                "font-size": "18px",
+                "padding": "10px",
+                "overflow": "hidden",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap",
+                "max-height": "3em"
+            }
+        }
+        with task_cols[(len(st.session_state.new_tasks)) % 5]:
+            card(
+                title="No Tasks added",
+                text="Click here to add a task",
+                on_click=show_task_form,
+                styles=card_styles_empty,
+                key=f"task-card-add-new-{len(st.session_state.new_tasks)}"
+            )
+
+        if st.session_state.show_task_form:
+            create_new_task_form(container)
+
+# Helper function to ensure close_all_dialogs is called first
+def handle_card_click(agent_or_task, agent_or_task_index, is_agent=True):
+    close_all_dialogs()
+    if is_agent:
+        edit_agent_dialog(agent_or_task, agent_or_task_index)
+    else:
+        edit_task_dialog(agent_or_task, agent_or_task_index)
+
 # Updated create_new_agent_form
 @st.experimental_fragment
 def create_new_agent_form(agent_list_container):
     agent_form = st.empty()
-    #agent_list_container = st.empty()  # Container for the agent list
     active_tools = st.session_state.get("active_tools", [])
     with agent_form.form(key="agent_form", clear_on_submit=True, border=False):
         st.subheader("Add Agent")
@@ -201,170 +458,6 @@ def create_new_task_form(task_list_container):
             st.rerun()
     return False
 
-# Function to update agent list display
-@st.experimental_fragment
-def update_agent_list(container):
-    with container:
-        agent_cols = st.columns(5)
-        for agent_index, agent in enumerate(st.session_state.new_agents):
-            tool_count = len(agent.get('tools', []))
-            color_index = agent_index % len(agent_colors)
-            card_styles = {
-                "card": {
-                    "width": "100%",
-                    "height": "250px",
-                    "border-radius": "10px",
-                    "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-                    "margin": "0px",
-                    "background-color": agent_colors[color_index],
-                },
-                "title": {
-                    "font-size": "26px",
-                },
-                "text": {
-                    "font-family": "Roboto, Open Sans, Arial, sans-serif",
-                    "font-size": "18px",
-                    "padding": "10px",
-                    "overflow": "hidden",
-                    "text-overflow": "ellipsis",
-                    "white-space": "nowrap",
-                    "max-height": "3em"
-                }
-            }
-            with agent_cols[agent_index % 5]:
-                card(
-                    title=agent['role'],
-                    text=f"Tools: {tool_count if tool_count > 0 else 'N/A'}",
-                    on_click=lambda idx=agent_index, cidx=-1: edit_agent_dialog(agent, idx, cidx),
-                    styles=card_styles,
-                    key=f"agent-card-{agent_index}-{random.randint(1, 100000)}"
-                )
-        # Add card to prompt adding new agents
-        card_styles_empty = {
-            "card": {
-                "width": "100%",
-                "height": "250px",
-                "border-radius": "10px",
-                "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-                "margin": "0px",
-                "background-color": "#262730",
-            },
-            "title": {
-                "font-size": "26px",
-            },
-            "text": {
-                "font-family": "Roboto, Open Sans, Arial, sans-serif",
-                "font-size": "18px",
-                "padding": "10px",
-                "overflow": "hidden",
-                "text-overflow": "ellipsis",
-                "white-space": "nowrap",
-                "max-height": "3em"
-            }
-        }
-        with agent_cols[(len(st.session_state.new_agents)) % 5]:
-            card(
-                title="No Agents Added" if len(st.session_state.new_agents) == 0 else "",
-                text="Click Here to Add an Agent" if len(st.session_state.new_agents) == 0 else "Click Here to Add Another Agent",
-                on_click=show_agent_form,
-                styles=card_styles_empty,
-                key=f"agent-card-add-new-{len(st.session_state.new_agents)}"
-            )
-
-        if st.session_state.show_agent_form:
-            create_new_agent_form(container)
-
-# Function to update task list display
-@st.experimental_fragment
-def update_task_list(container):
-    with container:
-        task_cols = st.columns(5)
-        displayed_tasks = set()
-        for task_index, task in enumerate(st.session_state.new_tasks):
-            if task['description'] in displayed_tasks:
-                continue
-            displayed_tasks.add(task['description'])
-            task_agent_role = st.session_state.new_agents[task['agent_index']]['role'] if 0 <= task['agent_index'] < len(st.session_state.new_agents) else 'Invalid Agent Index'
-            task_tools = ', '.join(task.get('tools', [])) if 'tools' in task else 'N/A'
-            task_context = ', '.join([f'Task {idx+1}' for idx in task.get('context_indexes', [])]) if task.get('context_indexes') else 'N/A'
-            task_description = task['description']
-            if len(task_description.split()) > 10:  # Assuming a sentence has around 10 words
-                task_description = " ".join(task_description.split()[:10]) + "..."
-            color_index = task['agent_index'] % len(agent_colors)
-            card_styles = {
-                "card": {
-                    "width": "100%",
-                    "height": "250px",
-                    "border-radius": "10px",
-                    "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-                    "margin": "0px",
-                    "background-color": agent_colors[color_index],
-                },
-                "title": {
-                    "font-size": "26px",
-                },
-                "text": {
-                    "font-family": "Roboto, Open Sans, Arial, sans-serif",
-                    "font-size": "14px",
-                    "padding": "10px",
-                    "overflow": "hidden",
-                    "text-overflow": "ellipsis",
-                    "white-space": "nowrap",
-                    "max-height": "3em"
-                }
-            }
-            with task_cols[task_index % 5]:
-                card(
-                    title=task_description,
-                    text=f"Agent: {task_agent_role}",
-                    on_click=lambda tidx=task_index, cidx=-1: edit_task_dialog(task, tidx, cidx),
-                    styles=card_styles,
-                    key=f"task-card-{task_index}-{task['description']}-{random.randint(1, 100000)}"
-                )
-        # Add card to prompt adding new tasks
-        card_styles_empty = {
-            "card": {
-                "width": "100%",
-                "height": "250px",
-                "border-radius": "10px",
-                "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-                "margin": "0px",
-                "background-color": "#262730",
-            },
-            "title": {
-                "font-size": "26px",
-            },
-            "text": {
-                "font-family": "Roboto, Open Sans, Arial, sans-serif",
-                "font-size": "14px",
-                "padding": "10px",
-                "overflow": "hidden",
-                "text-overflow": "ellipsis",
-                "white-space": "nowrap",
-                "max-height": "3em"
-            }
-        }
-        with task_cols[(len(st.session_state.new_tasks)) % 5]:
-            card(
-                title="No Tasks added",
-                text="Click here to add a task",
-                on_click=show_task_form,
-                styles=card_styles_empty,
-                key=f"task-card-add-new-{len(st.session_state.new_tasks)}"
-            )
-
-        if st.session_state.show_task_form:
-            create_new_task_form(container)
-
-# Callback functions to show the forms
-@st.experimental_fragment
-def show_agent_form():
-    st.session_state.show_agent_form = True
-
-@st.experimental_fragment
-def show_task_form():
-    st.session_state.show_task_form = True
-
 # Function to update the JSON file with new crew info
 def update_crew_json(crew_data):
     file_path = 'crewai_crews/crews.json'
@@ -394,65 +487,6 @@ def delete_crew(index):
     # Update the selected state
     st.session_state.crewai_crew_selected.pop(index)
 
-# Function to create an editable dialog for agent
-@st.experimental_dialog("Edit Agent")
-def edit_agent_dialog(agent, agent_index, crew_index):
-    llm_options = ["OpenAI", "LM Studio"]
-    current_llm = st.session_state.current_llm  # Use the currently selected LLM
-    llm_index = llm_options.index(current_llm)
-    
-    with st.form(key=f"edit_agent_form_{agent_index}", border=False):
-        role = st.text_input("Agent Name", value=agent["role"], key=f"agent_role_{agent_index}")
-        tools = st.multiselect("Tools", TOOL_NAMES, default=agent.get("tools", []), key=f"agent_tools_{agent_index}")
-        goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
-        backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
-        llm = st.selectbox("LLM", llm_options, index=llm_index, key=f"agent_llm_{agent_index}", disabled=True)
-        allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
-        memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
-
-        submit_button = st.form_submit_button(label="Save Agent")
-
-    if submit_button:
-        st.session_state.crew_list[crew_index]["agents"][agent_index] = {
-            "role": role,
-            "goal": goal,
-            "backstory": backstory,
-            "llm": llm,
-            "allow_delegation": allow_delegation,
-            "memory": memory,
-            "tools": tools
-        }
-        st.rerun()
-
-# Function to create an editable dialog for task
-@st.experimental_dialog("Edit Task")
-def edit_task_dialog(task, task_index, crew_index):
-    # Get agent names from the current crew list
-    current_agents = st.session_state.crew_list[crew_index]["agents"]
-    agent_names = [agent['role'] for agent in current_agents]
-    active_tools = [tool["name"] for tool in st.session_state.get("tools", TOOLS)]
-
-    with st.form(key=f"edit_task_form_{task_index}"):
-        st.write(f"Edit Task {task_index + 1} in Crew {crew_index + 1}")
-        description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
-        tools = st.multiselect("Tools", active_tools, default=task.get("tools", []), key=f"task_tools_{task_index}")
-        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
-        expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
-        context_indexes = st.multiselect("Context Task Indexes for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], default=[f'Task {i+1}' for i in task.get("context_indexes", [])], key=f"task_context_indexes_{task_index}")
-
-        submit_button = st.form_submit_button(label="Save Task")
-
-    if submit_button:
-        st.session_state.crew_list[crew_index]["tasks"][task_index] = {
-            "description": description,
-            "agent_index": agent_names.index(assigned_agent),
-            "expected_output": expected_output,
-            "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
-            "tools": tools
-        }
-        st.rerun()
-
-# Function to create new crew container
 def create_new_crew_container():
     with st.container(border=True):
         st.header("Create New Crew")
@@ -492,7 +526,6 @@ def create_new_crew_container():
             # Check if there is any change in active tools
             if "active_tools" not in st.session_state or st.session_state.active_tools != current_active_tools:
                 st.session_state.active_tools = current_active_tools
-                st.rerun()
 
         # Agents Tab
         with tab2:
@@ -539,7 +572,7 @@ with st.sidebar:
         st.image(os.path.join(os.path.dirname(__file__), 'crewai_crews', 'crewai.png'), width=150)
         st.caption("**Crews will run in sequential order from top to bottom**")
 
-        if st.button("➕ Create a Crew", key="create_new_crew_button", help="Create New Crew"):
+        if st.button("➕ Create a Crew", key="create_new_crew_button"):
             st.session_state.show_crew_container = True
 
         # Iterate through the crew list and display agents and tasks using cards
@@ -549,10 +582,16 @@ with st.sidebar:
                 if i >= len(st.session_state.crewai_crew_selected):
                     st.session_state.crewai_crew_selected.append(False)
                 st.session_state.crewai_crew_selected[i] = st.toggle(f"Run Crew: {crew['name']}", key=f"crew_{i}_selected", value=st.session_state.crewai_crew_selected[i])
+
+                agent_col1, task_col2 = st.columns(2)
+
+                with agent_col1:
+                    st.markdown("<h3>Agents</h3>", unsafe_allow_html=True)
                 
-                st.markdown("<h3>Agents</h3>", unsafe_allow_html=True)
-                agent_col1, agent_col2 = st.columns(2)
-                
+                with task_col2:
+                    st.markdown("<h3>Tasks</h3>", unsafe_allow_html=True)
+
+                # Display agents in the first column
                 for agent_index, agent in enumerate(crew["agents"]):
                     tool_count = len(agent.get('tools', []))
                     color_index = agent_index % len(agent_colors)
@@ -579,33 +618,26 @@ with st.sidebar:
                             "max-height": "3em"
                         }
                     }
-                    if agent_index % 2 == 0:
-                        with agent_col1:
-                            card(
-                                title=agent['role'],
-                                text=f"Tools: {tool_count if tool_count > 0 else 'N/A'}",
-                                on_click=lambda idx=agent_index, cidx=i: edit_agent_dialog(agent, idx, cidx),
-                                styles=card_styles
-                            )
-                    else:
-                        with agent_col2:
-                            card(
-                                title=agent['role'],
-                                text=f"Tools: {tool_count if tool_count > 0 else 'N/A'}",
-                                on_click=lambda idx=agent_index, cidx=i: edit_agent_dialog(agent, idx, cidx),
-                                styles=card_styles
-                            )
+                    with agent_col1:
+                        card(
+                            title=agent['role'],
+                            text=f"Tools: {tool_count if tool_count > 0 else 'N/A'}",
+                            on_click=lambda idx=agent_index, cidx=i: edit_agent_dialog(agent, idx, cidx),
+                            styles=card_styles,
+                            key=f"agent-card-{i}-{agent_index}"
+                        )
 
-                st.markdown("<h3>Tasks</h3>", unsafe_allow_html=True)
-                task_col1, task_col2 = st.columns(2)
+                # Display tasks in the second column, ordered by agent index
+                tasks_by_agent = sorted(crew["tasks"], key=lambda x: x['agent_index'])
                 
-                for task_index, task in enumerate(crew["tasks"]):
-                    task_agent_role = st.session_state.new_agents[task['agent_index']]['role'] if 0 <= task['agent_index'] < len(st.session_state.new_agents) else 'Invalid Agent Index'
+                for task_index, task in enumerate(tasks_by_agent):
+                    task_agent_role = crew['agents'][task['agent_index']]['role'] if 0 <= task['agent_index'] < len(crew['agents']) else 'Invalid Agent Index'
                     task_tools = ', '.join(task.get('tools', [])) if 'tools' in task else 'N/A'
                     task_context = ', '.join([f'Task {idx+1}' for idx in task.get('context_indexes', [])]) if task.get('context_indexes') else 'N/A'
                     task_description = task['description']
+                    short_task_description = task_description
                     if len(task_description.split()) > 10:  # Assuming a sentence has around 10 words
-                        task_description = " ".join(task_description.split()[:10]) + "..."
+                        short_task_description = " ".join(task_description.split()[:10]) + "..."
                     color_index = task['agent_index'] % len(agent_colors)
                     card_styles = {
                         "card": {
@@ -615,7 +647,7 @@ with st.sidebar:
                             "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
                             "margin": "0px",
                             "background-color": agent_colors[color_index],
-                            "id": f"agent-card-{i}-{task_index}"
+                            "id": f"task-card-{i}-{task_index}"
                         },
                         "title": {
                             "font-size": "26px",
@@ -626,30 +658,22 @@ with st.sidebar:
                             "padding": "10px",
                             "overflow": "hidden",
                             "text-overflow": "ellipsis",
-                            "white-space": "nowrap",
-                            "max-height": "3em"
+                            "white-space": "normal"
                         }
                     }
-                    if task_index % 2 == 0:
-                        with task_col1:
-                            card(
-                                title=task_description,
-                                text=f"Agent: {task_agent_role}",
-                                on_click=lambda tidx=task_index, cidx=i: edit_task_dialog(task, tidx, cidx),
-                                styles=card_styles
-                            )
-                    else:
-                        with task_col2:
-                            card(
-                                title=task_description,
-                                text=f"Agent: {task_agent_role}",
-                                on_click=lambda tidx=task_index, cidx=i: edit_task_dialog(task, tidx, cidx),
-                                styles=card_styles
-                            )
+                    with task_col2:
+                        card(
+                            title=short_task_description,
+                            text=f"Agent: {task_agent_role}",
+                            on_click=lambda tidx=task_index, cidx=i: edit_task_dialog(task, tidx, cidx),
+                            styles=card_styles,
+                            key=f"task-card-{i}-{task_index}"
+                        )
 
                 if st.button("Delete Crew", key=f"delete_crew_{i}"):
                     delete_crew(i)
                     st.rerun()
+
 
 async def get_response_async(llm, user_query, tool, chat_messages_history, context=""):
     try:
