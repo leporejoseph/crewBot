@@ -1,4 +1,5 @@
 # src/utils/llm_handler.py
+
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -16,11 +17,11 @@ def set_initial_llm():
     if st.session_state.lmStudio_llm_selected:
         st.session_state.llm = init_llm(None, st.session_state.lm_studio_model, st.session_state.lm_studio_base_url)
         st.session_state.llm_name = "LM Studio"
-        st.session_state.llm_model = f"{st.session_state.lm_studio_base_url}"
+        st.session_state.llm_model = st.session_state.lm_studio_base_url
     else:
         st.session_state.llm = init_llm(os.getenv("OPENAI_API_KEY"), st.session_state.get('openai_api_model', 'default-model'), None)
         st.session_state.llm_name = "OpenAI"
-        st.session_state.llm_model = f"{st.session_state.get('openai_api_model', 'Default')}"
+        st.session_state.llm_model = st.session_state.get('openai_api_model', 'Default')
 
 def update_api_key():
     """Update the API key and reinitialize the LLM."""
@@ -28,7 +29,7 @@ def update_api_key():
     os.environ["OPENAI_API_KEY"] = new_key
     with open(".env", "w") as env_file:
         env_file.write(f"OPENAI_API_KEY={new_key}\n")
-    set_initial_llm() 
+    set_initial_llm()
 
 def toggle_selection(key):
     """Toggle the selection between LM Studio and OpenAI."""
@@ -39,7 +40,6 @@ def toggle_selection(key):
 def get_response(llm, user_query, tool, chat_messages_history, context=""):
     try:
         qa_chain = st.session_state.get('qa_chain')
-        history = chat_messages_history
         if tool == "upload_documents" and qa_chain:
             response = qa_chain({"query": user_query, "context": context})
             return response.get('answer', "No documents found, please upload documents.")
@@ -72,4 +72,3 @@ def get_response(llm, user_query, tool, chat_messages_history, context=""):
     except Exception as e:
         st.error(f"Error in get_response: {e}")
         return ""
-

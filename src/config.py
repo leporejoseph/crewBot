@@ -1,4 +1,5 @@
 # src/config.py
+
 import os
 import streamlit as st
 from langchain_core.prompts import PromptTemplate
@@ -7,12 +8,13 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 
+# Constants
 LM_STUDIO_MODEL = "QuantFactory/dolphin-2.9-llama3-8b-GGUF/dolphin-2.9-llama3-8b.Q8_0.gguf"
 LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 def init_session_state():
-    """Initialize session state variables."""
+    """Initialize session state variables with defaults."""
     defaults = {
         "lmStudio_llm_selected": False,
         "lm_studio_model": LM_STUDIO_MODEL,
