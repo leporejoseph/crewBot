@@ -1,6 +1,7 @@
 # src/config.py
 
 import os
+import json
 import streamlit as st
 from langchain_core.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
@@ -43,7 +44,13 @@ def init_session_state():
         "embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
         "vectorstore": None,
         "retriever": None,
-        "qa_chain": None
+        "qa_chain": None,
+        'crew_list': json.load(open('crew_ai/crews.json')),
+        'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
+        'tools': [], 'new_agents': [], 'show_agent_form': False, 'show_crew_container': False,
+        'show_task_form': False, 'new_tasks': [], 'show_apikey_toggle': False, 'dialog_open': False,
+        'langchain_upload_docs_selected': False, 'langchain_export_pdf_selected': False
     }
+
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)

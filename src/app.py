@@ -2,15 +2,15 @@
 import streamlit as st
 from streamlit_card import card
 from dotenv import load_dotenv
-from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection
+from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection, get_response
 from utils.document_handler import handle_document_upload
 from utils.streamlit_expander import StreamToExpander
-from crew_ai.crewai_utils import DynamicCrewHandler
+from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.output_parsers import StrOutputParser
 from config import init_session_state
-import os, sys, json, pandas as pd, random, time, asyncio
+import os, sys, json, pandas as pd, random, time
 
+# Initialization and Configuration
 def initialize_app():
     os.makedirs('files', exist_ok=True)
     os.makedirs('chromadb', exist_ok=True)
@@ -19,33 +19,18 @@ def initialize_app():
     st.sidebar.title("Configuration")
     load_dotenv()
 
-def initialize_session_state():
-    session_defaults = {
-        'crew_list': json.load(open('crew_ai/crews.json')),
-        'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
-        'tools': [], 'new_agents': [], 'show_agent_form': False, 'show_crew_container': False,
-        'show_task_form': False, 'new_tasks': [], 'show_apikey_toggle': False, 'dialog_open': False,
-        'langchain_upload_docs_selected': False, 'langchain_export_pdf_selected': False
-    }
-    for key, value in session_defaults.items():
-        st.session_state.setdefault(key, value)
-
 initialize_app()
 init_session_state()
 set_initial_llm()
-initialize_session_state()
 
 llm_options = ["OpenAI", "LM Studio"]
 chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
 agent_colors = ["#32CD32", "#20B2AA", "#FFA500", "#FF6347", "#800080", "#1E90FF"]
-TOOLS = [{"name": tool, "needsApiKey": False, "source": "crewai", "description": f"A RAG tool for {tool.lower().replace('searchtool', 'searching within ')}"} for tool in [
-    "CSVSearchTool", "CodeDocsSearchTool", "DOCXSearchTool", "DirectoryReadTool", "DirectorySearchTool", "FileReadTool", "GithubSearchTool", "JSONSearchTool",
-    "MDXSearchTool", "PDFSearchTool", "PGSearchTool", "RagTool", "ScrapeElementFromWebsiteTool", "ScrapeWebsiteTool", "SerperDevTool", "TXTSearchTool",
-    "WebsiteSearchTool", "XMLSearchTool", "YoutubeChannelSearchTool", "YoutubeVideoSearchTool"]]
 TOOL_NAMES = [tool["name"] for tool in TOOLS]
 
 st.markdown("""<style>body { font-family: Arial, sans-serif; } h2 { color: #CD4055; }</style>""", unsafe_allow_html=True)
 
+# Sidebar Configuration
 def sidebar_configuration():
     with st.sidebar.expander("**LLM Selection**", True):
         llm_selected = st.selectbox("LLM", llm_options, index=0)
@@ -70,6 +55,7 @@ def sidebar_configuration():
 
 sidebar_configuration()
 
+# Form and Dialog Handling
 def reset_form_states():
     for key in ['show_crew_container', 'show_agent_form', 'show_task_form']:
         st.session_state[key] = False
@@ -301,6 +287,7 @@ def create_new_task_form(task_list_container):
             st.rerun()
     return False
 
+# Crew Management
 def update_crew_json(crew_data):
     file_path = 'crew_ai/crews.json'
     crews = json.load(open(file_path)) if os.path.exists(file_path) else []
@@ -419,25 +406,7 @@ def display_crew_list():
 
 display_crew_list()
 
-async def get_response_async(llm, user_query, tool, chat_messages_history, context=""):
-    try:
-        qa_chain = st.session_state.get('qa_chain')
-        if tool == "upload_documents" and qa_chain:
-            response = qa_chain({"query": user_query, "context": context})
-            return response.get('answer', "No documents found, please upload documents.")
-        else:
-            prompt = st.session_state['prompt']
-            parser = StrOutputParser()
-            chain = prompt | llm | parser
-            response_chunks = [chunk async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history})]
-            return "".join(response_chunks)
-    except Exception as e:
-        st.error(f"Error in get_response_async: {e}")
-        return ""
-
-def get_response(llm, user_query, tool, chat_messages_history, context=""):
-    return asyncio.run(get_response_async(llm, user_query, tool, chat_messages_history, context))
-
+# Main Execution
 if st.session_state.show_crew_container:
     create_new_crew_container()
 else:

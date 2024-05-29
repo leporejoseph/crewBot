@@ -16,6 +16,11 @@ from crewai_tools import (
 # Load environment variables from .env file
 load_dotenv()
 
+TOOLS = [{"name": tool, "needsApiKey": False, "source": "crewai", "description": f"A RAG tool for {tool.lower().replace('searchtool', 'searching within ')}"} for tool in [
+    "CSVSearchTool", "CodeDocsSearchTool", "DOCXSearchTool", "DirectoryReadTool", "DirectorySearchTool", "FileReadTool", "GithubSearchTool", "JSONSearchTool",
+    "MDXSearchTool", "PDFSearchTool", "PGSearchTool", "RagTool", "ScrapeElementFromWebsiteTool", "ScrapeWebsiteTool", "SerperDevTool", "TXTSearchTool",
+    "WebsiteSearchTool", "XMLSearchTool", "YoutubeChannelSearchTool", "YoutubeVideoSearchTool"]]
+
 class DynamicCrewHandler:
     def __init__(self, name, agents, tasks, llm, user_prompt, chat_history):
         self.name = name

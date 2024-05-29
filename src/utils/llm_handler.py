@@ -2,9 +2,8 @@
 
 import streamlit as st
 from langchain_openai import ChatOpenAI
-from langchain_core.runnables.history import RunnableWithMessageHistory
-import functools
-import os
+from langchain_core.output_parsers import StrOutputParser
+import os, asyncio, functools
 
 @functools.lru_cache(maxsize=None)
 def init_llm(api_key, model_name, base_url):
@@ -37,7 +36,7 @@ def toggle_selection(key):
     st.session_state.openai_llm_selected = key == "openai_llm_selected"
     set_initial_llm()
 
-def get_response(llm, user_query, tool, chat_messages_history, context=""):
+async def get_response_async(llm, user_query, tool, chat_messages_history, context=""):
     try:
         qa_chain = st.session_state.get('qa_chain')
         if tool == "upload_documents" and qa_chain:
@@ -45,30 +44,13 @@ def get_response(llm, user_query, tool, chat_messages_history, context=""):
             return response.get('answer', "No documents found, please upload documents.")
         else:
             prompt = st.session_state['prompt']
-            chain = prompt | llm
-            chain_with_history = RunnableWithMessageHistory(
-                chain,
-                get_session_history=lambda session_id: chat_messages_history,
-                input_messages_key="query",
-                history_messages_key="history",
-                configurable={"context": context}
-            )
-
-            response_chunks = []
-            for chunk in chain_with_history.invoke(
-                {"query": user_query, "context": context},
-                {"configurable": {"session_id": "any"}}
-            ):
-                if isinstance(chunk, str):
-                    response_chunks.append(chunk)
-                elif isinstance(chunk, dict) and 'content' in chunk:
-                    response_chunks.append(chunk['content'])
-                elif isinstance(chunk, tuple):
-                    if isinstance(chunk[0], dict) and 'content' in chunk[0]:
-                        response_chunks.append(chunk[0]['content'])
-
-            response = "".join(response_chunks)
-            return response
+            parser = StrOutputParser()
+            chain = prompt | llm | parser
+            response_chunks = [chunk async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history})]
+            return "".join(response_chunks)
     except Exception as e:
-        st.error(f"Error in get_response: {e}")
+        st.error(f"Error in get_response_async: {e}")
         return ""
+
+def get_response(llm, user_query, tool, chat_messages_history, context=""):
+    return asyncio.run(get_response_async(llm, user_query, tool, chat_messages_history, context))
