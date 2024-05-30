@@ -15,6 +15,7 @@ set_initial_llm()
 TOOL_NAMES = [tool["name"] for tool in TOOLS]
 
 st.markdown("""<style>body { font-family: Arial, sans-serif; } h2 { color: #CD4055; }</style>""", unsafe_allow_html=True)
+crewai_edit_dialog = st.empty()
 
 # Sidebar Configuration
 def sidebar_configuration():
@@ -46,10 +47,6 @@ def reset_form_states():
     for key in ['show_crew_container', 'show_agent_form', 'show_task_form']:
         st.session_state[key] = False
 
-def close_all_dialogs():
-    for key in ['show_agent_form', 'show_task_form', 'show_crew_container']:
-        st.session_state[key] = False
-
 @st.experimental_fragment
 def show_agent_form(): st.session_state.show_agent_form = True
 
@@ -57,30 +54,31 @@ def show_agent_form(): st.session_state.show_agent_form = True
 def show_task_form(): st.session_state.show_task_form = True
 
 @st.experimental_dialog("Edit Agent")
-def edit_agent_dialog(agent, agent_index):
+def edit_agent_dialog(agent, agent_index, crew_index):
     st.session_state.dialog_open = True  
-    close_all_dialogs()
     current_llm = st.session_state.current_llm
     llm_index = llm_options.index(current_llm)
 
-    with st.form(key=f"edit_agent_form_{agent_index}", border=False):
-        role = st.text_input("Agent Name", value=agent["role"], key=f"agent_role_{agent_index}")
-        tools = st.multiselect("Tools", TOOL_NAMES, default=agent.get("tools", []), key=f"agent_tools_{agent_index}")
-        goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
-        backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
-        llm = st.selectbox("LLM", llm_options, index=llm_index, key=f"agent_llm_{agent_index}", disabled=True)
-        allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
-        memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
+    if st.session_state.dialog_open:
+        with st.container(border=False):
+            role = st.text_input("Agent Name", value=agent["role"], key=f"agent_role_{agent_index}")
+            tools = st.multiselect("Tools", TOOL_NAMES, default=agent.get("tools", []), key=f"agent_tools_{agent_index}")
+            goal = st.text_area("Goal", value=agent["goal"], key=f"agent_goal_{agent_index}")
+            backstory = st.text_area("Backstory", value=agent["backstory"], key=f"agent_backstory_{agent_index}")
+            llm = st.selectbox("LLM", llm_options, index=llm_index, key=f"agent_llm_{agent_index}", disabled=True)
+            allow_delegation = st.toggle("Allow Delegation", value=agent.get("allow_delegation", False), key=f"agent_allow_delegation_{agent_index}")
+            memory = st.toggle("Memory", value=agent.get("memory", True), key=f"agent_memory_{agent_index}")
 
-        if st.form_submit_button(label="Save Agent"):
-            update_agent(agent_index, role, goal, backstory, llm, allow_delegation, memory, tools)
-            st.session_state.dialog_open = False 
-            st.rerun()
+            st.session_state.saved_agent_clicked = False
+            if st.button(label="Save Agent"):
+                st.session_state.saved_agent_clicked = True
+                update_agent(agent_index, crew_index, role, goal, backstory, llm, allow_delegation, memory, tools)
+                st.session_state.dialog_open = False
+                st.rerun()
 
 @st.experimental_dialog("Edit Task")
 def edit_task_dialog(task, task_index):
     st.session_state.dialog_open = True
-    close_all_dialogs()
     crew = next((crew for crew in st.session_state.crew_list if task in crew["tasks"]), None)
     if not crew:
         st.error("Task not found in any crew.")
@@ -89,21 +87,32 @@ def edit_task_dialog(task, task_index):
     current_agents = crew["agents"]
     agent_names = [agent['role'] for agent in current_agents]
 
-    with st.form(key=f"edit_task_form_{task_index}", border=False):
-        st.write(f"Edit Task {task_index + 1}")
-        description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
-        tools = st.multiselect("Tools", TOOL_NAMES, default=task.get("tools", []), key=f"task_tools_{task_index}")
-        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
-        expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
-        context_task_options = [f'Task {i+1}' for i in range(len(crew["tasks"]))]
-        default_context_tasks = [f'Task {i+1}' for i in task.get("context_indexes", [])]
-        context_indexes = st.multiselect("Context Task Indexes for Task", options=context_task_options, default=default_context_tasks, key=f"task_context_indexes_{task_index}")
+    if st.session_state.dialog_open:
+        #with st.form(key=f"edit_task_form_{task_index}", border=False):
+        with st.container(border=False):
+            st.write(f"Edit Task {task_index + 1}")
+            description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
+            tools = st.multiselect("Tools", TOOL_NAMES, default=task.get("tools", []), key=f"task_tools_{task_index}")
+            assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
+            expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
+            context_task_options = [f'Task {i+1}' for i in range(len(crew["tasks"]))]
+            default_context_tasks = [f'Task {i+1}' for i in task.get("context_indexes", [])]
+            context_indexes = st.multiselect("Context Task Indexes for Task", options=context_task_options, default=default_context_tasks, key=f"task_context_indexes_{task_index}")
 
-        if st.form_submit_button(label="Save Task"):
-            update_task(task_index, crew, description, assigned_agent, expected_output, context_indexes, tools)
-            st.session_state.dialog_open = False 
-            st.rerun()
+            st.session_state.saved_task_clicked = False
+            if st.form_submit_button(label="Save Task"):
+                st.session_state.saved_task_clicked = True
+                update_task(task_index, crew, description, assigned_agent, expected_output, context_indexes, tools)
+                st.session_state.dialog_open = False
+                st.rerun() 
+    
+if st.session_state.get("saved_task_clicked", False) or st.session_state.get("saved_agent_clicked", False):
+    crewai_edit_dialog = st.empty()
+    st.session_state.saved_task_clicked = False
+    st.session_state.saved_agent_clicked = False
+    st.rerun()
 
+@st.experimental_fragment
 def update_agent_list(container):
     with container:
         agent_cols = st.columns(5)
@@ -113,7 +122,7 @@ def update_agent_list(container):
                 card(
                     title=agent['role'],
                     text=f"Tools: {len(agent.get('tools', [])) or 'N/A'}",
-                    on_click=lambda idx=agent_index: handle_card_click(agent, idx, is_agent=True),
+                    on_click=lambda idx=agent_index: (handle_card_click(agent, idx, is_agent=False), update_dialog()),
                     styles=get_card_styles(color_index),
                     key=f"agent-card-{agent_index}-{random.randint(1, 100000)}"
                 )
@@ -128,6 +137,7 @@ def update_agent_list(container):
         if st.session_state.show_agent_form:
             create_new_agent_form(container)
 
+@st.experimental_fragment
 def update_task_list(container):
     with container:
         task_cols = st.columns(5)
@@ -137,7 +147,7 @@ def update_task_list(container):
                 card(
                     title=task.get('description', 'No description'),
                     text=f"Tools: {', '.join(task.get('tools', [])) or 'N/A'}\nAgent: {task.get('agent_role', 'No agent role')}\nContext: {', '.join([f'Task {idx+1}' for idx in task.get('context_indexes', [])]) or 'N/A'}",
-                    on_click=lambda tidx=task_index: handle_card_click(task, tidx, is_agent=False),
+                    on_click=lambda tidx=task_index, cidx=i: (handle_card_click(task, tidx, cidx, is_agent=False), update_dialog()),
                     styles=get_card_styles(color_index),
                     key=f"task-card-{task_index}-{random.randint(1, 100000)}"
                 )
@@ -152,22 +162,30 @@ def update_task_list(container):
         if st.session_state.show_task_form:
             create_new_task_form(container)
 
-def handle_card_click(agent_or_task, agent_or_task_index, is_agent=True):
-    close_all_dialogs()
+@st.experimental_fragment
+def handle_card_click(agent_or_task, agent_or_task_index, crew_index, is_agent=True):
     if is_agent:
-        edit_agent_dialog(agent_or_task, agent_or_task_index)
+        if not st.session_state.get("saved_agent_clicked", False):
+            edit_agent_dialog(agent_or_task, agent_or_task_index, crew_index)
     else:
-        edit_task_dialog(agent_or_task, agent_or_task_index)
+        if not st.session_state.get("saved_task_clicked", False):
+            edit_task_dialog(agent_or_task, agent_or_task_index, crew_index)
 
-def update_agent(agent_index, role, goal, backstory, llm, allow_delegation, memory, tools):
-    for crew in st.session_state.crew_list:
-        if any(agent in crew["agents"] for agent in crew["agents"]):
-            crew["agents"][agent_index] = {
-                "role": role, "goal": goal, "backstory": backstory, "llm": llm,
-                "allow_delegation": allow_delegation, "memory": memory, "tools": tools
-            }
-            break
+@st.experimental_fragment
+def update_agent(agent_index, crew_index, role, goal, backstory, llm, allow_delegation, memory, tools):
+    st.session_state.crew_list[crew_index]["agents"][agent_index] = {
+        "role": role, 
+        "goal": goal, 
+        "backstory": backstory, 
+        "llm": llm,
+        "allow_delegation": allow_delegation, 
+        "memory": memory, 
+        "tools": tools
+    }
+    # Update the crews.json file
+    update_crew_json(st.session_state.crew_list)
 
+@st.experimental_fragment
 def update_task(task_index, crew, description, assigned_agent, expected_output, context_indexes, tools):
     crew["tasks"][task_index] = {
         "description": description, "agent_index": assigned_agent,
@@ -225,6 +243,7 @@ def create_new_task_form(task_list_container):
             st.rerun()
     return False
 
+@st.experimental_fragment
 def create_new_crew_container():
     with st.container(border=True):
         st.header("Create New Crew")
@@ -279,6 +298,10 @@ def create_new_crew_container():
                     update_crew_json(crew_data)
                     reset_form_states()
                     st.rerun()
+
+def update_dialog():
+    global crewai_edit_dialog
+    crewai_edit_dialog = st.empty()
 
 # Main Execution
 if st.session_state.show_crew_container:
@@ -401,7 +424,7 @@ def display_crew_list():
                             card(
                                 title=agent['role'],
                                 text=f"Tools: {len(agent.get('tools', [])) or 'N/A'}",
-                                on_click=lambda idx=agent_index, cidx=i: edit_agent_dialog(agent, idx, cidx),
+                                on_click=lambda idx=agent_index, cidx=i: (handle_card_click(agent, idx, cidx, is_agent=True), update_dialog()),
                                 styles=get_card_styles(color_index),
                                 key=f"agent-card-{i}-{agent_index}"
                             )
@@ -414,7 +437,7 @@ def display_crew_list():
                             card(
                                 title=task['description'],
                                 text=f"Agent: {task_agent_role}",
-                                on_click=lambda tidx=task_index, cidx=i: edit_task_dialog(task, tidx, cidx),
+                                on_click=lambda tidx=task_index, cidx=i: (handle_card_click(task, tidx, cidx, is_agent=False), update_dialog()),
                                 styles=get_card_styles(color_index),
                                 key=f"task-card-{i}-{task_index}"
                             )

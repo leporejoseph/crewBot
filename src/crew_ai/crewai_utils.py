@@ -115,12 +115,11 @@ def create_task(description, agent, expected_output, context_indexes=[]):
     return Task(description=description, agent=agent, expected_output=expected_output, context=[context_indexes])
 
 # Crew Management
-def update_crew_json(crew_data):
+def update_crew_json(updated_crew_list):
     file_path = 'crew_ai/crews.json'
-    crews = json.load(open(file_path)) if os.path.exists(file_path) else []
-    crews.append(crew_data)
-    json.dump(crews, open(file_path, 'w'), indent=4)
+    with open(file_path, 'w') as f:
+        json.dump(updated_crew_list, f, indent=4)
 
 def delete_crew(index):
     st.session_state.crew_list.pop(index)
-    json.dump(st.session_state.crew_list, open('crew_ai/crews.json', 'w'), indent=4)
+    update_crew_json(st.session_state.crew_list)
