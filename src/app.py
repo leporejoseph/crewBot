@@ -5,7 +5,7 @@ from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection,
 from utils.document_handler import handle_document_upload
 from utils.streamlit_expander import StreamToExpander
 from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS, update_crew_json, delete_crew
-from config import init_session_state, llm_options, chat_messages_history, agent_colors, get_card_styles, get_empty_card_styles, initialize_app
+from config import init_session_state, llm_options, chat_messages_history, agent_colors, get_card_styles, get_empty_card_styles, initialize_app, save_preferences_on_change, save_user_preferences
 import os, sys, json, pandas as pd, random, time, re
 
 initialize_app()
@@ -20,25 +20,26 @@ crewai_edit_dialog = st.empty()
 # Sidebar Configuration
 def sidebar_configuration():
     with st.sidebar.expander("**LLM Selection**", True):
-        llm_selected = st.selectbox("LLM", llm_options, index=0)
+        llm_selected = st.selectbox("LLM", llm_options, index=llm_options.index(st.session_state.get("current_llm", "OpenAI")))
+        st.session_state.current_llm = llm_selected
+        save_user_preferences()  # Save preferences whenever LLM selection changes
+
         st.session_state.openai_llm_selected = (llm_selected == "OpenAI")
         st.session_state.lmStudio_llm_selected = (llm_selected == "LM Studio")
         toggle_selection("openai_llm_selected" if st.session_state.openai_llm_selected else "lmStudio_llm_selected")
 
         if st.session_state.openai_llm_selected:
-            st.session_state.current_llm = "OpenAI"
-            st.text_input('Model', value=st.session_state.get("openai_api_model", "gpt-3.5-turbo"), key='openai_api_model', on_change=set_initial_llm)
-            st.session_state.show_apikey_toggle = st.toggle("Show Api Key", value=False, key='show_openai_key')
+            st.text_input('Model', value=st.session_state.get("openai_api_model", "gpt-3.5-turbo"), key='openai_api_model', on_change=save_preferences_on_change('openai_api_model'))
+            st.session_state.show_apikey_toggle = st.toggle("Show Api Key", value=st.session_state.get("show_apikey_toggle", False), key='show_openai_key', on_change=save_preferences_on_change('show_apikey_toggle'))
             if st.session_state.show_apikey_toggle:
                 st.text_input('OpenAI API Key', os.getenv("OPENAI_API_KEY"), on_change=update_api_key, key='openai_api_key')
         else:
-            st.session_state.current_llm = "LM Studio"
-            st.text_input('Model', value=st.session_state.get("lm_studio_model", ""), key='lm_studio_model', on_change=set_initial_llm)
-            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", ""), key='lm_studio_base_url', on_change=set_initial_llm)
+            st.text_input('Model', value=st.session_state.get("lm_studio_model", ""), key='lm_studio_model', on_change=save_preferences_on_change('lm_studio_model'))
+            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", ""), key='lm_studio_base_url', on_change=save_preferences_on_change('lm_studio_base_url'))
 
     with st.sidebar.expander("LangChain Tools :parrot: :link:", True):
-        st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=True)
-        st.session_state.langchain_export_pdf_selected = st.toggle("Custom Tool: Export PDF", value=False)
+        st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_preferences_on_change('langchain_upload_docs_selected'))
+        st.session_state.langchain_export_pdf_selected = st.toggle("Custom Tool: Export PDF", value=st.session_state.get("langchain_export_pdf_selected", False), on_change=save_preferences_on_change('langchain_export_pdf_selected'))
 
 sidebar_configuration()
 
@@ -180,17 +181,20 @@ def update_agent(agent_index, crew_index, role, goal, backstory, llm, allow_dele
         "memory": memory, 
         "tools": tools
     }
-    # Update the crews.json file
-    update_crew_json(st.session_state.crew_list)
+    # Update the specific crew in the crews.json file
+    update_crew_json(st.session_state.crew_list[crew_index], crew_index)
 
 @st.experimental_fragment
-def update_task(task_index, crew, description, assigned_agent, expected_output, context_indexes, tools):
-    crew["tasks"][task_index] = {
-        "description": description, "agent_index": assigned_agent,
+def update_task(task_index, crew_index, description, assigned_agent, expected_output, context_indexes, tools):
+    st.session_state.crew_list[crew_index]["tasks"][task_index] = {
+        "description": description,
+        "agent_index": assigned_agent,
         "expected_output": expected_output,
         "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
         "tools": tools
     }
+    # Update the specific crew in the crews.json file
+    update_crew_json(st.session_state.crew_list[crew_index], crew_index)
 
 def create_new_agent_form(agent_list_container):
     agent_form = st.empty()
@@ -250,15 +254,15 @@ def create_new_crew_container():
         with tab1:
             st.subheader("Tools")
             tools_data = {
-                "Active": [False for _ in TOOLS],
-                "Tool": [tool["name"] for tool in TOOLS],
+                "Active": [tool in st.session_state.active_tools for tool in TOOL_NAMES],
+                "Tool": TOOL_NAMES,
                 "Source": [tool["source"] for tool in TOOLS],
                 "Description": [tool["description"] for tool in TOOLS],
                 "Req. API Key": [tool["needsApiKey"] for tool in TOOLS]
             }
             tools_df = pd.DataFrame(tools_data)
             edited_tools_df = st.data_editor(tools_df, height=777, hide_index=True, column_config={
-                "Active": st.column_config.CheckboxColumn("Active", width=100),
+                "Active": st.column_config.CheckboxColumn("Active", width=100, on_change=save_preferences_on_change('active_tools')),
                 "Tool": st.column_config.TextColumn("Tool", disabled=True, width=300),
                 "Source": st.column_config.TextColumn("Source", disabled=True, width=100),
                 "Description": st.column_config.TextColumn("Description", disabled=True, width=1000),
@@ -294,7 +298,7 @@ def create_new_crew_container():
                     else:
                         crew_data = {"name": crew_name, "agents": agents, "tasks": tasks}
                         st.session_state.crew_list.append(crew_data)
-                        update_crew_json(crew_data)
+                        update_crew_json(st.session_state.crew_list)
                         reset_form_states()
                         st.rerun()
 

@@ -17,6 +17,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 llm_options = ["OpenAI", "LM Studio"]
 chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
 agent_colors = ["#32CD32", "#20B2AA", "#FFA500", "#FF6347", "#800080", "#1E90FF"]
+preferences_file = os.path.join('utils', 'user_preferences.json')
 
 # Initialization and Configuration
 def initialize_app():
@@ -26,6 +27,53 @@ def initialize_app():
     st.title("CrewBot2: Your AI Assistant")
     st.sidebar.title("Configuration")
     load_dotenv()
+
+@st.experimental_fragment
+def save_user_preferences():
+    preferences = {
+        "llm_selected": st.session_state.get("current_llm", "OpenAI"),
+        "lm_studio_model": st.session_state.get("lm_studio_model", LM_STUDIO_MODEL),
+        "lm_studio_base_url": st.session_state.get("lm_studio_base_url", LM_STUDIO_BASE_URL),
+        "openai_api_model": st.session_state.get("openai_api_model", "gpt-3.5-turbo"),
+        "show_apikey_toggle": st.session_state.get("show_apikey_toggle", False),
+        "langchain_upload_docs_selected": st.session_state.get("langchain_upload_docs_selected", False),
+        "langchain_export_pdf_selected": st.session_state.get("langchain_export_pdf_selected", False),
+        "active_tools": st.session_state.get("active_tools", [])
+    }
+    with open(preferences_file, 'w') as file:
+        json.dump(preferences, file)
+
+@st.experimental_fragment
+def save_preferences_on_change(key):
+    save_user_preferences()
+
+def load_user_preferences():
+    defaults = {
+        "llm_selected": "OpenAI",
+        "lm_studio_model": LM_STUDIO_MODEL,
+        "lm_studio_base_url": LM_STUDIO_BASE_URL,
+        "openai_api_model": "gpt-3.5-turbo",
+        "show_apikey_toggle": False,
+        "langchain_upload_docs_selected": False,
+        "langchain_export_pdf_selected": False,
+        "active_tools": []
+    }
+    if os.path.exists(preferences_file):
+        with open(preferences_file, 'r') as file:
+            preferences = json.load(file)
+    else:
+        preferences = defaults
+        with open(preferences_file, 'w') as file:
+            json.dump(defaults, file)
+
+    st.session_state.current_llm = preferences.get("llm_selected", "OpenAI")
+    st.session_state.lm_studio_model = preferences.get("lm_studio_model", LM_STUDIO_MODEL)
+    st.session_state.lm_studio_base_url = preferences.get("lm_studio_base_url", LM_STUDIO_BASE_URL)
+    st.session_state.openai_api_model = preferences.get("openai_api_model", "gpt-3.5-turbo")
+    st.session_state.show_apikey_toggle = preferences.get("show_apikey_toggle", False)
+    st.session_state.langchain_upload_docs_selected = preferences.get("langchain_upload_docs_selected", False)
+    st.session_state.langchain_export_pdf_selected = preferences.get("langchain_export_pdf_selected", False)
+    st.session_state.active_tools = preferences.get("active_tools", [])
 
 def init_session_state():
     """Initialize session state variables with defaults."""
@@ -68,6 +116,9 @@ def init_session_state():
 
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
+
+    load_user_preferences()
+
 
 def get_card_styles(color_index):
     return {
