@@ -1,6 +1,7 @@
 # src/crew_ai/crewai_utils.py
 
-import os
+import os, json
+import streamlit as st
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import (
@@ -112,3 +113,14 @@ def create_agent(role, goal, backstory, llm, user_prompt=None, chat_history=None
 
 def create_task(description, agent, expected_output, context_indexes=[]):
     return Task(description=description, agent=agent, expected_output=expected_output, context=[context_indexes])
+
+# Crew Management
+def update_crew_json(crew_data):
+    file_path = 'crew_ai/crews.json'
+    crews = json.load(open(file_path)) if os.path.exists(file_path) else []
+    crews.append(crew_data)
+    json.dump(crews, open(file_path, 'w'), indent=4)
+
+def delete_crew(index):
+    st.session_state.crew_list.pop(index)
+    json.dump(st.session_state.crew_list, open('crew_ai/crews.json', 'w'), indent=4)

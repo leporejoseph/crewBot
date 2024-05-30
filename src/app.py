@@ -1,31 +1,17 @@
 # src/app.py
 import streamlit as st
 from streamlit_card import card
-from dotenv import load_dotenv
 from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection, get_response
 from utils.document_handler import handle_document_upload
 from utils.streamlit_expander import StreamToExpander
-from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from config import init_session_state
+from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS, update_crew_json, delete_crew
+from config import init_session_state, llm_options, chat_messages_history, agent_colors, get_card_styles, get_empty_card_styles, initialize_app
 import os, sys, json, pandas as pd, random, time, re
-
-# Initialization and Configuration
-def initialize_app():
-    os.makedirs('files', exist_ok=True)
-    os.makedirs('chromadb', exist_ok=True)
-    st.set_page_config(page_title="CrewBot: Your AI Assistant", page_icon="🤖", layout="wide")
-    st.title("CrewBot2: Your AI Assistant")
-    st.sidebar.title("Configuration")
-    load_dotenv()
 
 initialize_app()
 init_session_state()
 set_initial_llm()
 
-llm_options = ["OpenAI", "LM Studio"]
-chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
-agent_colors = ["#32CD32", "#20B2AA", "#FFA500", "#FF6347", "#800080", "#1E90FF"]
 TOOL_NAMES = [tool["name"] for tool in TOOLS]
 
 st.markdown("""<style>body { font-family: Arial, sans-serif; } h2 { color: #CD4055; }</style>""", unsafe_allow_html=True)
@@ -173,54 +159,6 @@ def handle_card_click(agent_or_task, agent_or_task_index, is_agent=True):
     else:
         edit_task_dialog(agent_or_task, agent_or_task_index)
 
-def get_card_styles(color_index):
-    return {
-        "card": {
-            "width": "100%",
-            "height": "250px",
-            "border-radius": "10px",
-            "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-            "margin": "0px",
-            "background-color": agent_colors[color_index],
-        },
-        "title": {
-            "font-size": "26px",
-        },
-        "text": {
-            "font-family": "Roboto, Open Sans, Arial, sans-serif",
-            "font-size": "18px",
-            "padding": "10px",
-            "overflow": "hidden",
-            "text-overflow": "ellipsis",
-            "white-space": "nowrap",
-            "max-height": "3em"
-        }
-    }
-
-def get_empty_card_styles():
-    return {
-        "card": {
-            "width": "100%",
-            "height": "250px",
-            "border-radius": "10px",
-            "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
-            "margin": "0px",
-            "background-color": "#262730",
-        },
-        "title": {
-            "font-size": "26px",
-        },
-        "text": {
-            "font-family": "Roboto, Open Sans, Arial, sans-serif",
-            "font-size": "18px",
-            "padding": "10px",
-            "overflow": "hidden",
-            "text-overflow": "ellipsis",
-            "white-space": "nowrap",
-            "max-height": "3em"
-        }
-    }
-
 def update_agent(agent_index, role, goal, backstory, llm, allow_delegation, memory, tools):
     for crew in st.session_state.crew_list:
         if any(agent in crew["agents"] for agent in crew["agents"]):
@@ -287,18 +225,6 @@ def create_new_task_form(task_list_container):
             st.rerun()
     return False
 
-# Crew Management
-def update_crew_json(crew_data):
-    file_path = 'crew_ai/crews.json'
-    crews = json.load(open(file_path)) if os.path.exists(file_path) else []
-    crews.append(crew_data)
-    json.dump(crews, open(file_path, 'w'), indent=4)
-
-def delete_crew(index):
-    st.session_state.crew_list.pop(index)
-    json.dump(st.session_state.crew_list, open('crew_ai/crews.json', 'w'), indent=4)
-    st.session_state.crewai_crew_selected.pop(index)
-
 def create_new_crew_container():
     with st.container(border=True):
         st.header("Create New Crew")
@@ -353,9 +279,6 @@ def create_new_crew_container():
                     update_crew_json(crew_data)
                     reset_form_states()
                     st.rerun()
-
-if 'crew_results' not in st.session_state:
-    st.session_state.crew_results = ""
 
 # Main Execution
 if st.session_state.show_crew_container:
@@ -442,7 +365,6 @@ else:
                     st.write(response_text)
                     chat_messages_history.add_ai_message(response_text)
 
-        # If all crews have finished, set the toggle to off for all selected crews
         if all_crews_finished:
             for i in range(len(st.session_state.crewai_crew_selected)):
                 if st.session_state.crewai_crew_selected[i]:
@@ -458,6 +380,7 @@ def display_crew_list():
 
             if st.button("➕ Create a Crew", key="create_new_crew_button"):
                 st.session_state.show_crew_container = True
+                st.rerun()
 
             for i, crew in enumerate(st.session_state.crew_list):
                 with st.expander(crew["name"], expanded=False):
@@ -470,7 +393,7 @@ def display_crew_list():
                     with agent_col1:
                         st.markdown("<h3>Agents</h3>", unsafe_allow_html=True)
                     with task_col2:
-                        st.markdown("<h3>Tasks</h3>", unsafe_allow_html=True)
+                        st.markdown("<h3>Tasks</h3>", unsafe_allow_html=True) 
 
                     for agent_index, agent in enumerate(crew["agents"]):
                         color_index = agent_index % len(agent_colors)
