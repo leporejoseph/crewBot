@@ -112,7 +112,6 @@ if st.session_state.get("saved_task_clicked", False) or st.session_state.get("sa
     st.session_state.saved_agent_clicked = False
     st.rerun()
 
-@st.experimental_fragment
 def update_agent_list(container):
     with container:
         agent_cols = st.columns(5)
@@ -137,7 +136,6 @@ def update_agent_list(container):
         if st.session_state.show_agent_form:
             create_new_agent_form(container)
 
-@st.experimental_fragment
 def update_task_list(container):
     with container:
         task_cols = st.columns(5)
@@ -147,14 +145,14 @@ def update_task_list(container):
                 card(
                     title=task.get('description', 'No description'),
                     text=f"Tools: {', '.join(task.get('tools', [])) or 'N/A'}\nAgent: {task.get('agent_role', 'No agent role')}\nContext: {', '.join([f'Task {idx+1}' for idx in task.get('context_indexes', [])]) or 'N/A'}",
-                    on_click=lambda tidx=task_index, cidx=i: (handle_card_click(task, tidx, cidx, is_agent=False), update_dialog()),
+                    on_click=lambda tidx=task_index: (handle_card_click(task, tidx, is_agent=False), update_dialog()),
                     styles=get_card_styles(color_index),
                     key=f"task-card-{task_index}-{random.randint(1, 100000)}"
                 )
         with task_cols[(len(st.session_state.new_tasks)) % 5]:
             card(
-                title="No Tasks added",
-                text="Click here to add a task",
+                title="No Tasks Added" if len(st.session_state.new_tasks) == 0 else "",
+                text="Click Here to Add an Task" if len(st.session_state.new_agents) == 0 else "Click Here to Add Another Task",
                 on_click=show_task_form,
                 styles=get_empty_card_styles(),
                 key=f"task-card-add-new-{len(st.session_state.new_tasks)}"
@@ -194,11 +192,11 @@ def update_task(task_index, crew, description, assigned_agent, expected_output, 
         "tools": tools
     }
 
-@st.experimental_fragment
 def create_new_agent_form(agent_list_container):
     agent_form = st.empty()
     active_tools = st.session_state.get("active_tools", [])
     with agent_form.form(key="agent_form", clear_on_submit=True, border=False):
+    #with st.container(border=False):
         st.subheader("Add Agent")
         role = st.text_input("Agent Name", key="role_input", placeholder="Research Analyst")
         tools = st.multiselect("Tools", active_tools, key="tools_input")
@@ -218,18 +216,18 @@ def create_new_agent_form(agent_list_container):
             st.rerun()
     return False
 
-@st.experimental_fragment
 def create_new_task_form(task_list_container):
     active_tools = st.session_state.get("active_tools", [])
     agent_names = [agent['role'] for agent in st.session_state.new_agents]
 
     with st.form(key="task_form", clear_on_submit=True):
+    #with st.container(border=False):
         st.subheader("Add Task")
         description = st.text_area("Description", key="description_input", placeholder="Analyze the provided company website and the hiring manager's company's domain, description. Focus on understanding the company's culture, values, and mission. Identify unique selling points and specific projects or achievements highlighted on the site.Compile a report summarizing these insights, specifically how they can be leveraged in a job posting to attract the right candidates.")
         tools = st.multiselect("Tools", active_tools, key="task_tools_input")
         assigned_agent = st.selectbox("Assigned Agent", agent_names, key="agent_name_input")
         expected_output = st.text_area("Expected Output", key="expected_output_input", placeholder="A comprehensive report detailing the company's culture, values, and mission, along with specific selling points relevant to the job role. Suggestions on incorporating these insights into the job posting should be included.")
-        context_indexes = st.multiselect("Context Task Indexes for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], key="context_indexes_input")
+        context_indexes = st.multiselect("Context for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], key="context_indexes_input")
 
         if st.form_submit_button("Add Task"):
             st.session_state.new_tasks.append({
@@ -283,21 +281,22 @@ def create_new_crew_container():
                 update_task_list(task_list_container)
 
         with tab4:
-            crew_name = st.text_input("Crew Name", placeholder="Business Requirements Crew")
-            agents = st.multiselect("Add Agents", st.session_state.new_agents, format_func=lambda agent: agent['role'], key="crew_agents_multiselect")
-            tasks = st.multiselect("Add Tasks", st.session_state.new_tasks, format_func=lambda task: task['description'], key="crew_tasks_multiselect")
+            with st.form(key="crew_form", clear_on_submit=True, border=False):
+                crew_name = st.text_input("Crew Name", placeholder="Business Requirements Crew")
+                agents = st.multiselect("Add Agents", st.session_state.new_agents, format_func=lambda agent: agent['role'], key="crew_agents_multiselect")
+                tasks = st.multiselect("Add Tasks", st.session_state.new_tasks, format_func=lambda task: task['description'], key="crew_tasks_multiselect")
 
-            if st.button("Create Crew", key="create_crew_button"):
-                if not agents:
-                    st.warning("Please add at least one agent before creating a crew.", icon="⚠️")
-                elif not tasks:
-                    st.warning("Please add at least one task before creating a crew.", icon="⚠️")
-                else:
-                    crew_data = {"name": crew_name, "agents": agents, "tasks": tasks}
-                    st.session_state.crew_list.append(crew_data)
-                    update_crew_json(crew_data)
-                    reset_form_states()
-                    st.rerun()
+                if st.form_submit_button("Create Crew"):
+                    if not agents:
+                        st.warning("Please add at least one agent before creating a crew.", icon="⚠️")
+                    elif not tasks:
+                        st.warning("Please add at least one task before creating a crew.", icon="⚠️")
+                    else:
+                        crew_data = {"name": crew_name, "agents": agents, "tasks": tasks}
+                        st.session_state.crew_list.append(crew_data)
+                        update_crew_json(crew_data)
+                        reset_form_states()
+                        st.rerun()
 
 def update_dialog():
     global crewai_edit_dialog
