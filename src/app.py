@@ -8,7 +8,7 @@ from utils.streamlit_expander import StreamToExpander
 from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from config import init_session_state
-import os, sys, json, pandas as pd, random, time
+import os, sys, json, pandas as pd, random, time, re
 
 # Initialization and Configuration
 def initialize_app():
@@ -406,13 +406,23 @@ def display_crew_list():
 
 display_crew_list()
 
+if 'crew_results' not in st.session_state:
+    st.session_state.crew_results = ""
+
 # Main Execution
 if st.session_state.show_crew_container:
     create_new_crew_container()
 else:
     handle_document_upload(st.session_state.langchain_upload_docs_selected)
+
     for msg in chat_messages_history.messages:
-        st.chat_message(msg.type).write(msg.content)
+        if msg.type == "ai" and "[DEBUG]:" in msg.content:
+            with st.chat_message("assistant"):
+                with st.expander(f"Crew Interaction Logs", expanded=False):
+                    st.write(msg.content)
+        else:
+            st.chat_message(msg.type).write(msg.content)
+
     user_input = st.chat_input("What's on your mind?", key="user_input")
     if user_input:
         st.chat_message("user").write(user_input)
@@ -431,29 +441,30 @@ else:
             response = get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
             chat_messages_history.add_ai_message(response)
             st.chat_message("assistant").write(response)
+        
         for i, selected in enumerate(st.session_state.crewai_crew_selected):
             if selected:
                 start_time = time.time()
-                crew_logs = st.empty()
-                with crew_logs.container():
-                    with st.chat_message("assistant"):
-                        with st.expander(f"{st.session_state.crew_list[i]['name']} Interaction Logs", False):
-                            with st.spinner(f"{st.session_state.crew_list[i]['name']} Working..."):
-                                sys.stdout = StreamToExpander(st, [])
-                                dynamic_crew_handler = DynamicCrewHandler(
-                                    name=st.session_state.crew_list[i]["name"],
-                                    agents=st.session_state.crew_list[i]["agents"],
-                                    tasks=st.session_state.crew_list[i]["tasks"],
-                                    llm=st.session_state.llm,
-                                    user_prompt=user_input,
-                                    chat_history=chat_messages_history
-                                )
-                                response, new_crew_data = dynamic_crew_handler.create_crew()
-                                agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
-                                st.dataframe(agent_df, hide_index=True)
-                                task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
-                                st.dataframe(task_df, hide_index=True)
-                        st.empty().text(f"Total Time Elapsed: {time.time() - start_time:.2f} seconds")
-                    with st.chat_message("assistant"):
-                        st.write(response[0] if isinstance(response, tuple) else response)
-                        chat_messages_history.add_ai_message(response[0] if isinstance(response, tuple) else response)
+                with st.chat_message("assistant"):
+                    with st.expander(f"{st.session_state.crew_list[i]['name']} Interaction Logs", False):
+                        with st.spinner(f"{st.session_state.crew_list[i]['name']} Working..."):
+                            sys.stdout = StreamToExpander(st, [])
+
+                            dynamic_crew_handler = DynamicCrewHandler(
+                                name=st.session_state.crew_list[i]["name"],
+                                agents=st.session_state.crew_list[i]["agents"],
+                                tasks=st.session_state.crew_list[i]["tasks"],
+                                llm=st.session_state.llm,
+                                user_prompt=user_input,
+                                chat_history=chat_messages_history
+                            )
+                            
+                            response, new_crew_data = dynamic_crew_handler.create_crew()
+                            agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
+                            st.dataframe(agent_df, hide_index=True)
+                            task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
+                            st.dataframe(task_df, hide_index=True)
+                    st.empty().text(f"Total Time Elapsed: {time.time() - start_time:.2f} seconds")
+                with st.chat_message("assistant"):
+                    st.write(response[0] if isinstance(response, tuple) else response)
+                    chat_messages_history.add_ai_message(response[0] if isinstance(response, tuple) else response)
