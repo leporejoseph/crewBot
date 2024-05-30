@@ -2,12 +2,14 @@
 import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 import re
+import time
 
 class StreamToExpander:
     """Redirect output to a Streamlit expander with formatted text and color coding for different agents."""
-    def __init__(self, expander, crew_name, buffer_limit=10000):
+    def __init__(self, expander, crew_name, agents, buffer_limit=10000, starttime=time.time()):
         self.expander = expander
         self.crew_name = crew_name
+        self.agents = agents
         self.buffer = []
         self.crew_results = ""
         self.results_finished = False
@@ -17,6 +19,8 @@ class StreamToExpander:
         self.current_color_index = 0
         self.agent_color_map = {}
         self.chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
+        self.processed_agents = set()
+        self.starttime = starttime
 
     def write(self, data):
         """Process and format the input data, extract agent names and task outputs, and append to buffer for display."""
@@ -36,12 +40,18 @@ class StreamToExpander:
             color = self.agent_color_map[agent_name]
             cleaned_data = cleaned_data.replace(agent_name, f":{color}[{agent_name}]")
 
+            self.processed_agents.add(agent_name)
+
         self.buffer.append(cleaned_data)
         self.crew_results += cleaned_data
 
         # Check for the final answer using a more flexible regex pattern
         final_answer_matches = re.findall(r"final\s*answer:\s*(.*?)(?:\n|$)", self.crew_results, re.IGNORECASE)
-        if final_answer_matches and not self.results_finished:
+        if final_answer_matches and self.processed_agents == set(agent['role'] for agent in self.agents) and not self.results_finished:
+            self.crew_results += "\n\n[crewai_expander]:== " + self.crew_name
+            self.crew_results += "\n\n[crewai_starttime]:== " + str(self.starttime)
+            self.crew_results += "\n\n[crewai_endtime]:== " + str(time.time())
+
             self.chat_messages_history.add_ai_message(self.crew_results)
             self.results_finished = True
 

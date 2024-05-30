@@ -354,6 +354,102 @@ def create_new_crew_container():
                     reset_form_states()
                     st.rerun()
 
+if 'crew_results' not in st.session_state:
+    st.session_state.crew_results = ""
+
+# Main Execution
+if st.session_state.show_crew_container:
+    create_new_crew_container()
+else:
+    handle_document_upload(st.session_state.langchain_upload_docs_selected)
+
+    for msg in chat_messages_history.messages:
+        if msg.type == "ai" and "[DEBUG]:" in msg.content:
+            crew_name_match = re.findall(r"\[crewai_expander\]:==\s*(.*?)(?:\s|$)", msg.content, re.IGNORECASE)
+            crew_start_time = re.findall(r"\[crewai_starttime\]:==\s*(.*?)(?:\s|$)", msg.content, re.IGNORECASE)
+            crew_end_time = re.findall(r"\[crewai_endtime\]:==\s*(.*?)(?:\s|$)", msg.content, re.IGNORECASE)
+            if crew_name_match:
+                crew_name = crew_name_match[0]
+                with st.chat_message("assistant"):
+                    with st.expander(f"{crew_name} Interaction Logs", expanded=False):
+                        st.write(msg.content)
+                        # Create dataframes for agent and task details
+                        crew_info = next((crew for crew in st.session_state.crew_list if crew['name'] == crew_name), None)
+                        if crew_info:
+                            agent_df = pd.DataFrame([agent['role'] for agent in crew_info['agents']], columns=["Agents"])
+                            st.dataframe(agent_df, hide_index=True)
+                            task_df = pd.DataFrame([task['description'] for task in crew_info['tasks']], columns=["Tasks"])
+                            st.dataframe(task_df, hide_index=True)
+                    # Convert start and end times from strings to floats
+                    if crew_start_time and crew_end_time:
+                        start_time = float(crew_start_time[0])
+                        end_time = float(crew_end_time[0])
+                        elapsed_time = end_time - start_time
+                        st.empty().text(f"Total Time Elapsed: {elapsed_time:.2f} seconds")
+        else:
+            st.chat_message(msg.type).write(msg.content)
+
+    user_input = st.chat_input("What's on your mind?", key="user_input")
+    if user_input:
+        st.chat_message("user").write(user_input)
+        chat_messages_history.add_user_message(user_input)
+        if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
+            if st.session_state.qa_chain:
+                response = st.session_state.qa_chain.invoke({"input": user_input})
+                st.chat_message("assistant").write(response.get('answer', "No documents found, please upload documents."))
+                chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
+                with st.expander("Sources", False):
+                    for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
+                        st.write(f"- {source_info}")
+            else:
+                st.error("QA Chain is not initialized. Please check the configuration.")
+        else:
+            response = get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
+            chat_messages_history.add_ai_message(response)
+            st.chat_message("assistant").write(response)
+
+        all_crews_finished = False
+        for i, selected in enumerate(st.session_state.crewai_crew_selected):
+            if selected:
+                start_time = time.time()
+                st.session_state[f"{st.session_state.crew_list[i]['name']}_start_time"] = start_time
+                crew_name = st.session_state.crew_list[i]['name']
+                agents = st.session_state.crew_list[i]['agents']
+                with st.chat_message("assistant"):
+                    with st.expander(f"{crew_name} Interaction Logs", False):
+                        with st.spinner(f"{crew_name} Working..."):
+                            sys.stdout = StreamToExpander(st, crew_name, agents)
+
+                            dynamic_crew_handler = DynamicCrewHandler(
+                                name=crew_name,
+                                agents=st.session_state.crew_list[i]["agents"],
+                                tasks=st.session_state.crew_list[i]["tasks"],
+                                llm=st.session_state.llm,
+                                user_prompt=user_input,
+                                chat_history=chat_messages_history
+                            )
+
+                            response, new_crew_data = dynamic_crew_handler.create_crew()
+                            agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
+                            st.dataframe(agent_df, hide_index=True)
+                            task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
+                            st.dataframe(task_df, hide_index=True)
+                        elapsed_time = time.time() - start_time
+                        st.empty().text(f"Total Time Elapsed Test: {elapsed_time:.2f} seconds")
+                        all_crews_finished = True
+                with st.chat_message("assistant"):
+                    response_text = response[0] if isinstance(response, tuple) else response
+                    st.write(response_text)
+                    chat_messages_history.add_ai_message(response_text)
+
+        # If all crews have finished, set the toggle to off for all selected crews
+        if all_crews_finished:
+            for i in range(len(st.session_state.crewai_crew_selected)):
+                if st.session_state.crewai_crew_selected[i]:
+                    toggle_key = f"crew_{i}_selected"
+                    st.session_state[toggle_key] = False
+
+@st.experimental_fragment
 def display_crew_list():
     with st.sidebar:
         with st.container(border=True):
@@ -367,7 +463,7 @@ def display_crew_list():
                 with st.expander(crew["name"], expanded=False):
                     if i >= len(st.session_state.crewai_crew_selected):
                         st.session_state.crewai_crew_selected.append(False)
-                    st.session_state.crewai_crew_selected[i] = st.toggle(f"Run Crew: {crew['name']}", key=f"crew_{i}_selected", value=st.session_state.crewai_crew_selected[i])
+                    st.session_state.crewai_crew_selected[i] = st.toggle(f"Run Crew: {crew['name']}", key=f"crew_{i}_selected", value=False)
 
                     agent_col1, task_col2 = st.columns(2)
 
@@ -405,66 +501,3 @@ def display_crew_list():
                         st.rerun()
 
 display_crew_list()
-
-if 'crew_results' not in st.session_state:
-    st.session_state.crew_results = ""
-
-# Main Execution
-if st.session_state.show_crew_container:
-    create_new_crew_container()
-else:
-    handle_document_upload(st.session_state.langchain_upload_docs_selected)
-
-    for msg in chat_messages_history.messages:
-        if msg.type == "ai" and "[DEBUG]:" in msg.content:
-            with st.chat_message("assistant"):
-                with st.expander(f"Crew Interaction Logs", expanded=False):
-                    st.write(msg.content)
-        else:
-            st.chat_message(msg.type).write(msg.content)
-
-    user_input = st.chat_input("What's on your mind?", key="user_input")
-    if user_input:
-        st.chat_message("user").write(user_input)
-        chat_messages_history.add_user_message(user_input)
-        if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
-            if st.session_state.qa_chain:
-                response = st.session_state.qa_chain.invoke({"input": user_input})
-                st.chat_message("assistant").write(response.get('answer', "No documents found, please upload documents."))
-                chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
-                with st.expander("Sources", False):
-                    for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
-                        st.write(f"- {source_info}")
-            else:
-                st.error("QA Chain is not initialized. Please check the configuration.")
-        else:
-            response = get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
-            chat_messages_history.add_ai_message(response)
-            st.chat_message("assistant").write(response)
-        
-        for i, selected in enumerate(st.session_state.crewai_crew_selected):
-            if selected:
-                start_time = time.time()
-                with st.chat_message("assistant"):
-                    with st.expander(f"{st.session_state.crew_list[i]['name']} Interaction Logs", False):
-                        with st.spinner(f"{st.session_state.crew_list[i]['name']} Working..."):
-                            sys.stdout = StreamToExpander(st, [])
-
-                            dynamic_crew_handler = DynamicCrewHandler(
-                                name=st.session_state.crew_list[i]["name"],
-                                agents=st.session_state.crew_list[i]["agents"],
-                                tasks=st.session_state.crew_list[i]["tasks"],
-                                llm=st.session_state.llm,
-                                user_prompt=user_input,
-                                chat_history=chat_messages_history
-                            )
-                            
-                            response, new_crew_data = dynamic_crew_handler.create_crew()
-                            agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
-                            st.dataframe(agent_df, hide_index=True)
-                            task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
-                            st.dataframe(task_df, hide_index=True)
-                    st.empty().text(f"Total Time Elapsed: {time.time() - start_time:.2f} seconds")
-                with st.chat_message("assistant"):
-                    st.write(response[0] if isinstance(response, tuple) else response)
-                    chat_messages_history.add_ai_message(response[0] if isinstance(response, tuple) else response)
