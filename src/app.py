@@ -1,12 +1,24 @@
 # src/app.py
+import os, sys, pandas as pd, random, time, re
 import streamlit as st
 from streamlit_card import card
 from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection, get_response
 from utils.document_handler import handle_document_upload
 from utils.streamlit_expander import StreamToExpander
 from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS, update_crew_json, delete_crew
-from config import init_session_state, llm_options, chat_messages_history, agent_colors, get_card_styles, get_empty_card_styles, initialize_app, save_preferences_on_change, save_user_preferences
-import os, sys, json, pandas as pd, random, time, re
+from config import (
+    init_session_state,
+    llm_options,
+    chat_messages_history,
+    agent_colors,
+    get_card_styles,
+    get_empty_card_styles,
+    initialize_app,
+    save_preferences_on_change,
+    save_user_preferences,
+    save_chat_history,
+    clear_chat_history
+)
 
 initialize_app()
 init_session_state()
@@ -22,7 +34,7 @@ def sidebar_configuration():
     with st.sidebar.expander("**LLM Selection**", True):
         llm_selected = st.selectbox("LLM", llm_options, index=llm_options.index(st.session_state.get("current_llm", "OpenAI")))
         st.session_state.current_llm = llm_selected
-        save_user_preferences()  # Save preferences whenever LLM selection changes
+        save_user_preferences()
 
         st.session_state.openai_llm_selected = (llm_selected == "OpenAI")
         st.session_state.lmStudio_llm_selected = (llm_selected == "LM Studio")
@@ -37,13 +49,16 @@ def sidebar_configuration():
             st.text_input('Model', value=st.session_state.get("lm_studio_model", ""), key='lm_studio_model', on_change=save_preferences_on_change('lm_studio_model'))
             st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", ""), key='lm_studio_base_url', on_change=save_preferences_on_change('lm_studio_base_url'))
 
+        if st.button("❌ Clear Chat History"):
+            clear_chat_history()
+            st.toast(":robot_face: Chat history cleared")
+
     with st.sidebar.expander("LangChain Tools :parrot: :link:", True):
         st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_preferences_on_change('langchain_upload_docs_selected'))
         st.session_state.langchain_export_pdf_selected = st.toggle("Custom Tool: Export PDF", value=st.session_state.get("langchain_export_pdf_selected", False), on_change=save_preferences_on_change('langchain_export_pdf_selected'))
 
 sidebar_configuration()
 
-# Form and Dialog Handling
 def reset_form_states():
     for key in ['show_crew_container', 'show_agent_form', 'show_task_form']:
         st.session_state[key] = False
@@ -196,11 +211,11 @@ def update_task(task_index, crew_index, description, assigned_agent, expected_ou
     # Update the specific crew in the crews.json file
     update_crew_json(st.session_state.crew_list[crew_index], crew_index)
 
+@st.experimental_fragment
 def create_new_agent_form(agent_list_container):
     agent_form = st.empty()
     active_tools = st.session_state.get("active_tools", [])
     with agent_form.form(key="agent_form", clear_on_submit=True, border=False):
-    #with st.container(border=False):
         st.subheader("Add Agent")
         role = st.text_input("Agent Name", key="role_input", placeholder="Research Analyst")
         tools = st.multiselect("Tools", active_tools, key="tools_input")
@@ -220,6 +235,7 @@ def create_new_agent_form(agent_list_container):
             st.rerun()
     return False
 
+@st.experimental_fragment
 def create_new_task_form(task_list_container):
     active_tools = st.session_state.get("active_tools", [])
     agent_names = [agent['role'] for agent in st.session_state.new_agents]
@@ -250,7 +266,7 @@ def create_new_crew_container():
     with st.container(border=True):
         st.header("Create New Crew")
         tab1, tab2, tab3, tab4 = st.tabs(["Tools", "Agents", "Tasks", "Crew"])
-
+        
         with tab1:
             st.subheader("Tools")
             tools_data = {
@@ -261,8 +277,9 @@ def create_new_crew_container():
                 "Req. API Key": [tool["needsApiKey"] for tool in TOOLS]
             }
             tools_df = pd.DataFrame(tools_data)
-            edited_tools_df = st.data_editor(tools_df, height=777, hide_index=True, column_config={
-                "Active": st.column_config.CheckboxColumn("Active", width=100, on_change=save_preferences_on_change('active_tools')),
+            edited_tools_df = st.data_editor(tools_df, height=777, on_change=save_preferences_on_change('active_tools'), hide_index=True, 
+                                             column_config={
+                "Active": st.column_config.CheckboxColumn("Active", width=100),
                 "Tool": st.column_config.TextColumn("Tool", disabled=True, width=300),
                 "Source": st.column_config.TextColumn("Source", disabled=True, width=100),
                 "Description": st.column_config.TextColumn("Description", disabled=True, width=1000),
@@ -298,13 +315,14 @@ def create_new_crew_container():
                     else:
                         crew_data = {"name": crew_name, "agents": agents, "tasks": tasks}
                         st.session_state.crew_list.append(crew_data)
-                        update_crew_json(st.session_state.crew_list)
+                        update_crew_json(crew_data, len(st.session_state.crew_list) - 1)
                         reset_form_states()
                         st.rerun()
 
 def update_dialog():
     global crewai_edit_dialog
     crewai_edit_dialog = st.empty()
+
 
 # Main Execution
 if st.session_state.show_crew_container:
@@ -342,20 +360,25 @@ else:
     if user_input:
         st.chat_message("user").write(user_input)
         chat_messages_history.add_user_message(user_input)
+        save_chat_history()
+
         if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
             if st.session_state.qa_chain:
                 response = st.session_state.qa_chain.invoke({"input": user_input})
-                st.chat_message("assistant").write(response.get('answer', "No documents found, please upload documents."))
-                chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
-                with st.expander("Sources", False):
-                    for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
-                        st.write(f"- {source_info}")
+                with st.chat_message("assistant"):
+                    st.write(response.get('answer', "No documents found, please upload documents."))
+                    chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
+                    save_chat_history()  
+                    with st.expander("Sources", False):
+                        for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
+                            st.write(f"- {source_info}")
             else:
                 st.error("QA Chain is not initialized. Please check the configuration.")
         else:
             response = get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
             chat_messages_history.add_ai_message(response)
             st.chat_message("assistant").write(response)
+            save_chat_history()  
 
         all_crews_finished = False
         for i, selected in enumerate(st.session_state.crewai_crew_selected):
@@ -390,6 +413,7 @@ else:
                     response_text = response[0] if isinstance(response, tuple) else response
                     st.write(response_text)
                     chat_messages_history.add_ai_message(response_text)
+                    save_chat_history()  
 
         if all_crews_finished:
             for i in range(len(st.session_state.crewai_crew_selected)):

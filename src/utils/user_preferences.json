@@ -1,1 +1,10 @@
-{"llm_selected": "LM Studio", "lm_studio_model": "QuantFactory/dolphin-2.9-llama3-8b-GGUF/dolphin-2.9-llama3-8b.Q8_0.gguf", "lm_studio_base_url": "http://localhost:1234/v1", "openai_api_model": "gpt-3.5-turbo", "show_apikey_toggle": false, "langchain_upload_docs_selected": false, "langchain_export_pdf_selected": false, "active_tools": []}
+{
+    "llm_selected": "LM Studio",
+    "lm_studio_model": "QuantFactory/dolphin-2.9-llama3-8b-GGUF/dolphin-2.9-llama3-8b.Q8_0.gguf",
+    "lm_studio_base_url": "http://localhost:1234/v1",
+    "openai_api_model": "gpt-3.5-turbo",
+    "show_apikey_toggle": false,
+    "langchain_upload_docs_selected": true,
+    "langchain_export_pdf_selected": false,
+    "active_tools": []
+}

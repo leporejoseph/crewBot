@@ -118,16 +118,29 @@ def create_task(description, agent, expected_output, context_indexes=[]):
 def update_crew_json(updated_crew, crew_index):
     """Update the specific crew in the crews.json file."""
     crews_file = 'crew_ai/crews.json'
-    
+
     with open(crews_file, 'r') as file:
         crews_data = json.load(file)
-    
-    # Update the specific crew
-    crews_data[crew_index] = updated_crew
+
+    if 0 <= crew_index < len(crews_data):
+        crews_data[crew_index] = updated_crew
+    else:
+        crews_data.append(updated_crew)
     
     with open(crews_file, 'w') as file:
         json.dump(crews_data, file, indent=4)
 
 def delete_crew(index):
+    """Delete a specific crew by index."""
     st.session_state.crew_list.pop(index)
-    update_crew_json(st.session_state.crew_list)
+    crews_file = 'crew_ai/crews.json'
+    
+    with open(crews_file, 'r') as file:
+        crews_data = json.load(file)
+    
+    if 0 <= index < len(crews_data):
+        crews_data.pop(index)
+        with open(crews_file, 'w') as file:
+            json.dump(crews_data, file, indent=4)
+    else:
+        st.error(f"Crew index {index} is out of range.")

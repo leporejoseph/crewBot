@@ -1,5 +1,3 @@
-# src/config.py
-
 import os
 import json
 import streamlit as st
@@ -9,6 +7,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_core.messages import HumanMessage, AIMessage
 
 # Constants
 LM_STUDIO_MODEL = "QuantFactory/dolphin-2.9-llama3-8b-GGUF/dolphin-2.9-llama3-8b.Q8_0.gguf"
@@ -18,6 +17,7 @@ llm_options = ["OpenAI", "LM Studio"]
 chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
 agent_colors = ["#32CD32", "#20B2AA", "#FFA500", "#FF6347", "#800080", "#1E90FF"]
 preferences_file = os.path.join('utils', 'user_preferences.json')
+chat_history_file = os.path.join('utils', 'user_chat_history.json')
 
 # Initialization and Configuration
 def initialize_app():
@@ -28,9 +28,8 @@ def initialize_app():
     st.sidebar.title("Configuration")
     load_dotenv()
 
-@st.experimental_fragment
-def save_user_preferences():
-    preferences = {
+def get_current_preferences():
+    return {
         "llm_selected": st.session_state.get("current_llm", "OpenAI"),
         "lm_studio_model": st.session_state.get("lm_studio_model", LM_STUDIO_MODEL),
         "lm_studio_base_url": st.session_state.get("lm_studio_base_url", LM_STUDIO_BASE_URL),
@@ -40,12 +39,22 @@ def save_user_preferences():
         "langchain_export_pdf_selected": st.session_state.get("langchain_export_pdf_selected", False),
         "active_tools": st.session_state.get("active_tools", [])
     }
+
+def save_user_preferences():
+    preferences = get_current_preferences()
     with open(preferences_file, 'w') as file:
-        json.dump(preferences, file)
+        json.dump(preferences, file, indent=4)
+    st.session_state.previous_preferences = preferences
+
+def preferences_changed():
+    current_preferences = get_current_preferences()
+    return current_preferences != st.session_state.previous_preferences
 
 @st.experimental_fragment
 def save_preferences_on_change(key):
-    save_user_preferences()
+    if preferences_changed():
+        st.toast(key)
+        save_user_preferences()
 
 def load_user_preferences():
     defaults = {
@@ -74,6 +83,37 @@ def load_user_preferences():
     st.session_state.langchain_upload_docs_selected = preferences.get("langchain_upload_docs_selected", False)
     st.session_state.langchain_export_pdf_selected = preferences.get("langchain_export_pdf_selected", False)
     st.session_state.active_tools = preferences.get("active_tools", [])
+ 
+@st.experimental_fragment
+def save_chat_history():
+    messages = [{"type": msg.type, "content": msg.content.strip()} for msg in chat_messages_history.messages]
+    with open(chat_history_file, 'w') as file:
+        json.dump(messages, file, indent=4)
+
+def load_chat_history():
+    if os.path.exists(chat_history_file) and chat_messages_history.messages == []:
+        try:
+            with open(chat_history_file, 'r') as file:
+                messages = json.load(file)
+                formatted_messages = []
+                for msg in messages:
+                    if msg["type"] == "human":
+                        chat_messages_history.add_user_message(msg["content"])
+                    else:
+                        chat_messages_history.add_ai_message(msg["content"])
+        except json.JSONDecodeError:
+            st.session_state["chat_history"] = StreamlitChatMessageHistory(key="chat_messages")
+            save_chat_history()
+    else:
+        st.session_state["chat_history"] = StreamlitChatMessageHistory(key="chat_messages")
+        save_chat_history()
+    
+def clear_chat_history():
+    with open(chat_history_file, 'w') as file:
+        json.dump([], file, indent=4)
+    chat_messages_history.clear()
+    st.session_state["chat_history"] = chat_messages_history
+
 
 def init_session_state():
     """Initialize session state variables with defaults."""
@@ -118,7 +158,7 @@ def init_session_state():
         st.session_state.setdefault(key, value)
 
     load_user_preferences()
-
+    load_chat_history()
 
 def get_card_styles(color_index):
     return {

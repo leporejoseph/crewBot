@@ -1,6 +1,6 @@
 # src/utils/document_handler.py
 
-import os
+import os, re
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -52,11 +52,34 @@ def load_text_document(uploaded_file):
 
 def process_documents(documents):
     """Process documents for embedding and retrieval."""
+    def clean_text(text):
+        """Clean text by removing special characters and extra spaces."""
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[^\x00-\x7F]+', '', text)
+        return text.strip()
+
+    # Clean the content of each document
+    cleaned_documents = []
+    for doc in documents:
+        cleaned_content = clean_text(doc.page_content)
+        if cleaned_content:
+            cleaned_documents.append(Document(page_content=cleaned_content, metadata=doc.metadata))
+
+    if not cleaned_documents:
+        st.error("No valid content found in the uploaded documents.", icon="🚨")
+        return
+
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    all_splits = [chunk for doc in documents for chunk in text_splitter.split_documents([doc])]
+    all_splits = [chunk for doc in cleaned_documents for chunk in text_splitter.split_documents([doc])]
+    
+    if not all_splits:
+        st.error("Failed to split documents into valid chunks.", icon="🚨")
+        return
+
     if not st.session_state.vectorstore:
         st.session_state.vectorstore = Chroma.from_documents(documents=all_splits, embedding=st.session_state.embedding_model)
         st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+    
     if 'retriever' in st.session_state and st.session_state.retriever and not st.session_state.qa_chain:
         initialize_qa_chain()
 
@@ -68,5 +91,5 @@ def initialize_qa_chain():
         question_answer_chain = create_stuff_documents_chain(st.session_state.llm, prompt)
         st.session_state.qa_chain = create_retrieval_chain(st.session_state.retriever, question_answer_chain)
     except Exception as e:
-        st.error(f"Error initializing QA chain: {e}")
+        st.error(f"Error initializing QA chain: {e}", icon="🚨")
         st.session_state.qa_chain = None
