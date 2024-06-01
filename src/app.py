@@ -17,7 +17,11 @@ from config import (
     save_preferences_on_change,
     save_user_preferences,
     save_chat_history,
-    clear_chat_history
+    clear_chat_history,
+    OPENAI_MODEL,
+    LM_STUDIO_MODEL,
+    LM_STUDIO_BASE_URL,
+    GROQ_MODEL,
 )
 
 initialize_app()
@@ -38,16 +42,28 @@ def sidebar_configuration():
 
         st.session_state.openai_llm_selected = (llm_selected == "OpenAI")
         st.session_state.lmStudio_llm_selected = (llm_selected == "LM Studio")
-        toggle_selection("openai_llm_selected" if st.session_state.openai_llm_selected else "lmStudio_llm_selected")
+        st.session_state.groq_llm_selected = (llm_selected == "Groq")
+        toggle_selection(
+            "openai_llm_selected" if st.session_state.openai_llm_selected else
+            "lmStudio_llm_selected" if st.session_state.lmStudio_llm_selected else
+            "groq_llm_selected"
+        )
 
         if st.session_state.openai_llm_selected:
-            st.text_input('Model', value=st.session_state.get("openai_api_model", "gpt-3.5-turbo"), key='openai_api_model', on_change=save_preferences_on_change('openai_api_model'))
-            st.session_state.show_apikey_toggle = st.toggle("Show Api Key", value=st.session_state.get("show_apikey_toggle", False), key='show_openai_key', on_change=save_preferences_on_change('show_apikey_toggle'))
+            st.text_input('Model', value=st.session_state.get("openai_api_model", OPENAI_MODEL), key='openai_api_model', on_change=save_preferences_on_change('openai_api_model'))
+            st.session_state.show_apikey_toggle = st.toggle("Show API Key", value=st.session_state.get("show_apikey_toggle", False), key='show_openai_key', on_change=save_preferences_on_change('show_apikey_toggle'))
             if st.session_state.show_apikey_toggle:
-                st.text_input('OpenAI API Key', os.getenv("OPENAI_API_KEY"), on_change=update_api_key, key='openai_api_key')
-        else:
-            st.text_input('Model', value=st.session_state.get("lm_studio_model", ""), key='lm_studio_model', on_change=save_preferences_on_change('lm_studio_model'))
-            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", ""), key='lm_studio_base_url', on_change=save_preferences_on_change('lm_studio_base_url'))
+                openai_api_key = os.getenv("OPENAI_API_KEY", "")
+                st.text_input('OpenAI API Key', openai_api_key, on_change=update_api_key, key='openai_api_key')
+        elif st.session_state.lmStudio_llm_selected:
+            st.text_input('Model', value=st.session_state.get("lm_studio_model", LM_STUDIO_MODEL), key='lm_studio_model', on_change=save_preferences_on_change('lm_studio_model'))
+            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", LM_STUDIO_BASE_URL), key='lm_studio_base_url', on_change=save_preferences_on_change('lm_studio_base_url'))
+        elif st.session_state.groq_llm_selected:
+            st.text_input('Model Name', value=st.session_state.get("groq_model_name", GROQ_MODEL), key='groq_model_name', on_change=save_preferences_on_change('groq_model_name'))
+            st.session_state.show_apikey_toggle = st.toggle("Show API Key", value=st.session_state.get("show_apikey_toggle", False), key='show_groq_key', on_change=save_preferences_on_change('show_apikey_toggle'))
+            if st.session_state.show_apikey_toggle:
+                groq_api_key = os.getenv("GROQ_API_KEY", "")
+                st.text_input('Groq API Key', groq_api_key, on_change=update_api_key, key='groq_api_key')
 
         if st.button("❌ Clear Chat History"):
             clear_chat_history()
@@ -360,7 +376,6 @@ else:
     if user_input:
         st.chat_message("user").write(user_input)
         chat_messages_history.add_user_message(user_input)
-        save_chat_history()
 
         if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
             if st.session_state.qa_chain:
@@ -375,9 +390,7 @@ else:
             else:
                 st.error("QA Chain is not initialized. Please check the configuration.")
         else:
-            response = get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
-            chat_messages_history.add_ai_message(response)
-            st.chat_message("assistant").write(response)
+            get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
             save_chat_history()  
 
         all_crews_finished = False
