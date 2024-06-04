@@ -23,8 +23,9 @@ TOOLS = [{"name": tool, "needsApiKey": False, "source": "crewai", "description":
     "WebsiteSearchTool", "XMLSearchTool", "YoutubeChannelSearchTool", "YoutubeVideoSearchTool"]]
 
 class DynamicCrewHandler:
-    def __init__(self, name, agents, tasks, llm, user_prompt, chat_history):
+    def __init__(self, name, memory, agents, tasks, llm, user_prompt, chat_history):
         self.name = name
+        self.memory = memory
         self.agents = agents
         self.tasks = tasks
         self.llm = llm
@@ -69,7 +70,6 @@ class DynamicCrewHandler:
                 backstory=agent["backstory"],
                 llm=self.llm,
                 allow_delegation=agent["allow_delegation"],
-                memory=agent["memory"],
                 tools=tools
             ))
         return agents
@@ -101,18 +101,11 @@ class DynamicCrewHandler:
         response = crew.kickoff()
         new_crew_data = {
             "name": self.name,
+            "memory": self.memory,
             "agents": self.agents,
             "tasks": self.tasks
         }
         return response, new_crew_data
-
-def create_agent(role, goal, backstory, llm, user_prompt=None, chat_history=None):
-    if user_prompt and chat_history:
-        goal += f"\n\nUse user prompt and Chat history for context.\n\n[Start of user prompt]\n{user_prompt}\n[End of user prompt]\n\n[Start of chat history]\n{chat_history}\n[End of chat history]"
-    return Agent(role=role, goal=goal, backstory=backstory, llm=llm, allow_delegation=False, memory=True)
-
-def create_task(description, agent, expected_output, context_indexes=[]):
-    return Task(description=description, agent=agent, expected_output=expected_output, context=[context_indexes])
 
 # Crew Management
 def update_crew_json(updated_crew, crew_index):

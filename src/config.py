@@ -50,14 +50,12 @@ def save_user_preferences():
 
 def preferences_changed():
     current_preferences = get_current_preferences()
-    return current_preferences != st.session_state.previous_preferences
+    return current_preferences != st.session_state.get('previous_preferences', {})
 
-@st.experimental_fragment
-def save_preferences_on_change(key):
+def save_preferences_on_change():
     if preferences_changed():
-        st.toast(key)
         save_user_preferences()
-
+        
 def load_user_preferences():
     defaults = {
         "llm_selected": "OpenAI",
@@ -87,6 +85,7 @@ def load_user_preferences():
     st.session_state.langchain_export_pdf_selected = preferences.get("langchain_export_pdf_selected", False)
     st.session_state.active_tools = preferences.get("active_tools", [])
     st.session_state.groq_model_name = preferences.get("groq_model_name", GROQ_MODEL)
+    st.session_state.previous_preferences = preferences
 
 @st.experimental_fragment
 def save_chat_history():
@@ -144,6 +143,47 @@ def init_session_state():
                 assistant
             """
         ),
+        "export_pdf_prompt": PromptTemplate(
+            input_variables=["history", "context", "query"],
+            template="""
+                You are tasked with creating a business report in a professional format. 
+                The report should include bullet points, headers, subheaders, and styling to always appease the bosses.
+                IMPORTANT:DO NOT PUT CODE EXAMPLES IN THIS.DO NOT PUT FAKE NAMES IN THIS.
+                Limit the spaces between each line.
+                Use the following format for the content:
+                Query: {query}
+                - Use "# " for main headers. Example #Header
+                - Use "## " for subheaders. Example ##Subheader
+                - Use "-" for bullet points. Example -Bullet point
+                Chat History: {history}
+                Context: {context}
+                Please generate the content accordingly:
+            """
+        ),
+        "crewai_pre_prompt": PromptTemplate(
+            input_variables=["query", "context"],
+            template="""
+                You are an intelligent assistant tasked with analyzing the provided crew data and the user's query. The crew data (context) is static and detailed. Your role is to explain how you will process this data to generate a response based on the crew's roles, goals, and tasks.
+
+                Here’s how you will approach the task:
+                
+                1. **Analyze the Query**: Understand the user's request or parameters.
+                2. **Evaluate the Context**: Read the static crew JSON to identify the roles, goals, backstories, and tasks of each agent within the crew.
+                3. **Describe the Process**: Explain how you will use the information from each agent to address the user's query, detailing which agents and tasks are relevant.
+
+                Example Crew and Query:
+                Query: {query}
+                Context: {context}
+
+                You will describe:
+                - The key elements of the query.
+                - The relevant agents and their roles in addressing the query.
+                - The specific tasks that will be referenced and how their outputs will be used.
+                - How the final response will be structured based on the gathered information.
+
+                Your response should clearly outline the process, ensuring that the user's query is addressed using the detailed information provided by the static crew data.
+            """
+        ),
         "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
         "embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
         "vectorstore": None,
@@ -154,6 +194,7 @@ def init_session_state():
         'edit_agent_index': None,
         'edit_task_index': None,
         'crew_results': None,
+        'current_crew_name': None,
         'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
         'tools': [], 
         'new_agents': [], 
@@ -166,7 +207,8 @@ def init_session_state():
         'show_apikey_toggle': False, 
         'dialog_open': False,
         'langchain_upload_docs_selected': False, 
-        'langchain_export_pdf_selected': False
+        'langchain_export_pdf_selected': False,
+        'export_pdf_selected': False
     }
 
     for key, value in defaults.items():

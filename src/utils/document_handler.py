@@ -9,6 +9,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
+from fpdf import FPDF
 
 def handle_document_upload(langchain_upload_docs_selected):
     """Handle document upload and processing."""
@@ -93,3 +94,64 @@ def initialize_qa_chain():
     except Exception as e:
         st.error(f"Error initializing QA chain: {e}", icon="🚨")
         st.session_state.qa_chain = None
+
+def download_pdf(formatted_pdf_text: str, crew_name: str):
+    class PDF(FPDF):
+        def header(self):
+            self.set_font("Arial", "B", 12)
+            self.cell(0, 10, "Summary Report", 0, 1, "C")
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font("Arial", "I", 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+        def chapter_title(self, title):
+            self.set_font("Arial", "B", 12)
+            self.cell(0, 10, title, 0, 1, "L")
+            self.ln(4)
+
+        def chapter_body(self, body):
+            self.set_font("Arial", size=12)
+            self.multi_cell(0, 10, body)
+            self.ln()
+
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    last_was_header = False
+    for line in formatted_pdf_text.split("\n"):
+        if line.startswith("# "):  # Header 1
+            pdf.chapter_title(line[2:])
+            last_was_header = True
+        elif line.startswith("## "):  # Header 2
+            pdf.set_font("Arial", "B", 10)
+            pdf.cell(0, 10, line[3:], 0, 1, "L")
+            last_was_header = True
+        elif line.startswith("- "):  # Bullet point
+            pdf.set_font("Arial", size=12)
+            pdf.cell(5, 5, "-", 0, 0)
+            pdf.multi_cell(0, 10, line[2:])
+            last_was_header = False
+        else:
+            if last_was_header:
+                pdf.ln(2)
+            pdf.chapter_body(line)
+            last_was_header = False
+
+    # Define the path to save the PDF
+    output_dir = os.path.join("files")
+    os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
+    file_name = os.path.join(output_dir, f"{crew_name}_Summary.pdf")
+    
+    # Save the PDF
+    pdf.output(file_name)
+    
+    # Provide a download button for the saved PDF
+    st.download_button(
+        label=f"Download {crew_name}_Summary.pdf",
+        data=open(file_name, "rb").read(),
+        file_name=f"{crew_name}_Summary.pdf",
+        mime="application/pdf"
+    )

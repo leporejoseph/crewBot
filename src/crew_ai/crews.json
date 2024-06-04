@@ -1,6 +1,7 @@
 [
     {
         "name": "Business Requirements Crew",
+        "memory": true,
         "agents": [
             {
                 "role": "Technology Expert",
@@ -90,15 +91,14 @@
         ]
     },
     {
-        "name": "Test Crew 2",
+        "name": "Technology Expert Crew",
         "agents": [
             {
-                "role": "Technology Expert",
+                "role": "Technology Expert Updated",
                 "goal": "Assess technological feasibilities and requirements for producing high-quality reports.",
                 "backstory": "A visionary in technological trends, identifying which technologies best suit the project's needs.",
-                "llm": "LM Studio",
+                "llm": "Groq",
                 "allow_delegation": false,
-                "memory": true,
                 "tools": []
             }
         ],
@@ -110,104 +110,7 @@
                 "context_indexes": [],
                 "tools": []
             }
-        ]
-    },
-    {
-        "name": "test crew 3",
-        "agents": [
-            {
-                "role": "aa",
-                "goal": "afdf",
-                "backstory": "ff",
-                "llm": "OpenAI",
-                "allow_delegation": false,
-                "memory": true,
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            }
         ],
-        "tasks": [
-            {
-                "description": "cc",
-                "agent_index": 0,
-                "expected_output": "ddds",
-                "context_indexes": [],
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            },
-            {
-                "description": "dd",
-                "agent_index": 0,
-                "expected_output": "ssss",
-                "context_indexes": [
-                    0
-                ],
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            }
-        ]
-    },
-    {
-        "name": "test crew 4",
-        "agents": [
-            {
-                "role": "aaa",
-                "goal": "ssd",
-                "backstory": "ddd",
-                "llm": "OpenAI",
-                "allow_delegation": false,
-                "memory": true,
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            },
-            {
-                "role": "sssss",
-                "goal": "ddd",
-                "backstory": "sss",
-                "llm": "OpenAI",
-                "allow_delegation": false,
-                "memory": true,
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            }
-        ],
-        "tasks": [
-            {
-                "description": "1111",
-                "agent_index": 0,
-                "expected_output": "aaas",
-                "context_indexes": [],
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            },
-            {
-                "description": "2222",
-                "agent_index": 0,
-                "expected_output": "dsfdsfsfds",
-                "context_indexes": [
-                    0
-                ],
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            },
-            {
-                "description": "33333",
-                "agent_index": 1,
-                "expected_output": "dsfsffdsf",
-                "context_indexes": [
-                    0
-                ],
-                "tools": [
-                    "CSVSearchTool"
-                ]
-            }
-        ]
+        "memory": true
     }
 ]

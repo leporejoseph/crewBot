@@ -6,8 +6,8 @@ from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 import streamlit as st
 import asyncio
-import functools
 from config import GROQ_MODEL, OPENAI_MODEL, LM_STUDIO_MODEL, LM_STUDIO_BASE_URL
+from utils.document_handler import download_pdf
 
 def init_llm(api_key, model_name, llm_name, base_url):
     """Initialize the LLM based on the selected LLM name and API key."""
@@ -76,26 +76,41 @@ async def get_response_async(llm, user_query, tool, chat_messages_history, conte
     try:
         if llm is None:
             raise ValueError("LLM is not initialized.")
-        qa_chain = st.session_state.get('qa_chain')
-        if tool == "upload_documents" and qa_chain:
-            response = qa_chain({"query": user_query, "context": context})
-            return response.get('answer', "No documents found, please upload documents.")
+
+        if any(st.session_state.crewai_crew_selected):
+            prompt = st.session_state.get('crewai_pre_prompt', st.session_state['prompt'])
+        elif tool=="export_pdf":
+            prompt = st.session_state.get('export_pdf_prompt', st.session_state['prompt'])
         else:
             prompt = st.session_state['prompt']
-            parser = StrOutputParser()
-            chain = prompt | llm | parser
-            
-            with st.chat_message("assistant"):
-                output_placeholder = st.empty()
-                full_output = ""  
-                async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history}):
-                    full_output += chunk
-                    output_placeholder.write(full_output)  
-                chat_messages_history.add_ai_message(full_output)
-                
+
+        parser = StrOutputParser()
+        chain = prompt | llm | parser
+        
+        with st.chat_message("assistant"):
+            first_output_placeholder = st.empty()
+            first_output = ""  
+            async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history}):
+                first_output += chunk
+                first_output_placeholder.write(first_output)  
+
+            if tool=="export_pdf":
+                with st.spinner(f"Generating PDF..."):
+                    pdf_output = ""
+                    async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history}):
+                        pdf_output += chunk
+
+                    crew_name = "Crew"  # Default crew name if not found
+                    if not st.session_state.get("current_crew_name", crew_name) is None:
+                        crew_name = st.session_state.current_crew_name
+
+                    download_pdf(pdf_output, crew_name)
+
+            chat_messages_history.add_ai_message(first_output)
+               
     except Exception as e:
         st.error(f"Error in get_response_async: {e}")
         return ""
-
+    
 def get_response(llm, user_query, tool, chat_messages_history, context=""):
     return asyncio.run(get_response_async(llm, user_query, tool, chat_messages_history, context))
