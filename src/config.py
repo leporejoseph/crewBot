@@ -150,15 +150,28 @@ def init_session_state():
         "retriever": None,
         "qa_chain": None,
         'crew_list': json.load(open('crew_ai/crews.json')),
+        'rerun_needed': False,
+        'edit_agent_index': None,
+        'edit_task_index': None,
         'crew_results': None,
         'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
-        'tools': [], 'new_agents': [], 'show_agent_form': False, 'show_crew_container': False,
-        'show_task_form': False, 'new_tasks': [], 'show_apikey_toggle': False, 'dialog_open': False,
-        'langchain_upload_docs_selected': False, 'langchain_export_pdf_selected': False
+        'tools': [], 
+        'new_agents': [], 
+        'show_agent_form': False, 
+        'show_crew_container': False, 
+        'show_edit_crew_agent_task': False, 
+        'show_edit_agent_form': False,
+        'show_task_form': False, 
+        'new_tasks': [], 
+        'show_apikey_toggle': False, 
+        'dialog_open': False,
+        'langchain_upload_docs_selected': False, 
+        'langchain_export_pdf_selected': False
     }
 
     for key, value in defaults.items():
-        st.session_state.setdefault(key, value)
+        if key not in st.session_state:
+            st.session_state[key] = value
 
     load_user_preferences()
     load_chat_history()
