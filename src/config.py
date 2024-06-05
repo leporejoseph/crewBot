@@ -1,3 +1,4 @@
+# src/config.py
 import os
 import json
 import streamlit as st
@@ -16,7 +17,25 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GROQ_MODEL = "llama3-70b-8192"
 llm_options = ["OpenAI", "LM Studio", "Groq"]
 chat_messages_history = StreamlitChatMessageHistory(key='chat_messages')
-agent_colors = ["#32CD32", "#20B2AA", "#FFA500", "#FF6347", "#800080", "#1E90FF"]
+agent_colors = [
+    "#CD4055",  # Crew Red
+    "#F27C3B",  # Orange
+    "#FFA42C",  # Light Orange
+    "#6EC950",  # Green
+    "#42B8D3",  # Light Blue
+    "#6060BA",  # Blue
+    "#B260B2",  # Purple
+    "#C71585",  # Medium Violet Red
+    "#FF69B4",  # Hot Pink
+    "#32CD32",  # Lime Green
+    "#8B4513",  # Saddle Brown
+    "#6A5ACD",  # Slate Blue
+    "#2E8B57",  # Sea Green
+    "#DAA520",  # Goldenrod
+    "#5F9EA0",  # Cadet Blue
+    "#D2691E",  # Chocolate
+]
+
 preferences_file = os.path.join('utils', 'user_preferences.json')
 chat_history_file = os.path.join('utils', 'user_chat_history.json')
 
@@ -52,6 +71,7 @@ def preferences_changed():
     current_preferences = get_current_preferences()
     return current_preferences != st.session_state.get('previous_preferences', {})
 
+@st.experimental_fragment
 def save_preferences_on_change():
     if preferences_changed():
         save_user_preferences()
@@ -222,19 +242,18 @@ def get_card_styles(color_index):
     return {
         "card": {
             "width": "100%",
-            "height": "250px",
+            "height": "150px",
             "border-radius": "10px",
             "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
             "margin": "0px",
             "background-color": agent_colors[color_index],
         },
         "title": {
-            "font-size": "26px",
+            "font-size": "15px",
         },
         "text": {
-            "font-family": "Roboto, Open Sans, Arial, sans-serif",
-            "font-size": "18px",
-            "padding": "10px",
+            "font-family": "system-ui",
+            "font-size": "12px",
             "overflow": "hidden",
             "text-overflow": "ellipsis",
             "white-space": "nowrap",
@@ -246,7 +265,7 @@ def get_empty_card_styles():
     return {
         "card": {
             "width": "100%",
-            "height": "250px",
+            "height": "150px",
             "border-radius": "10px",
             "box-shadow": "0 0 10px rgba(0,0,0,0.1)",
             "margin": "0px",
@@ -256,9 +275,8 @@ def get_empty_card_styles():
             "font-size": "26px",
         },
         "text": {
-            "font-family": "Roboto, Open Sans, Arial, sans-serif",
-            "font-size": "18px",
-            "padding": "10px",
+            "font-family": "system-ui",
+            "font-size": "12px",
             "overflow": "hidden",
             "text-overflow": "ellipsis",
             "white-space": "nowrap",
