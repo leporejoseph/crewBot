@@ -44,7 +44,7 @@ def initialize_app():
     os.makedirs('files', exist_ok=True)
     os.makedirs('chromadb', exist_ok=True)
     st.set_page_config(page_title="CrewBot: Your AI Assistant", page_icon="🤖", layout="wide")
-    st.title("CrewBot2: Your AI Assistant")
+    st.title("CrewBot: Your AI Assistant")
     st.sidebar.title("Configuration")
     load_dotenv()
 
@@ -181,27 +181,43 @@ def init_session_state():
             """
         ),
         "crewai_pre_prompt": PromptTemplate(
-            input_variables=["query", "context"],
+            input_variables=["query", "tool_context", "crew_context"],
             template="""
-                You are an intelligent assistant tasked with analyzing the provided crew data and the user's query. The crew data (context) is static and detailed. Your role is to explain how you will process this data to generate a response based on the crew's roles, goals, and tasks.
+                Think step by step before answering.
+                You will only output either two responses:
 
-                Here’s how you will approach the task:
-                
-                1. **Analyze the Query**: Understand the user's request or parameters.
-                2. **Evaluate the Context**: Read the static crew JSON to identify the roles, goals, backstories, and tasks of each agent within the crew.
-                3. **Describe the Process**: Explain how you will use the information from each agent to address the user's query, detailing which agents and tasks are relevant.
-
-                Example Crew and Query:
                 Query: {query}
-                Context: {context}
 
-                You will describe:
-                - The key elements of the query.
-                - The relevant agents and their roles in addressing the query.
-                - The specific tasks that will be referenced and how their outputs will be used.
-                - How the final response will be structured based on the gathered information.
+                Tool Context:
+                {tool_context}
 
-                Your response should clearly outline the process, ensuring that the user's query is addressed using the detailed information provided by the static crew data.
+                Did the user's query contain the requirements needed for the Context? Disect the users Query to map out the required context. 
+                    Example: Query=Can you summarize this site google.com? If using the WebsiteSearchTool you may map it our like this: 
+                    search query = Query
+                    URL of the website = google.com
+                    In this example, it would be YES.
+                    Map out the Tool Context with what is provided in the Query.
+                    Example: Query = "Can you summarize this site google.com"
+                1. IMPORTANT: If NO, return ONLY an answer to the user and a follow-up question to the user asking for the given context in Tool Context.
+                2. If YES, return this:
+                    Here's how you will approach the task:
+                    
+                    1. **Analyze the Query**: Understand the user's request or parameters.
+                    2. **Evaluate the Context**: Read the static crew JSON to identify the roles, goals, backstories, and tasks of each agent within the crew.
+                    3. **Describe the Process**: Explain how you will use the information from each agent to address the user's query, detailing which agents and tasks are relevant.
+
+                    You will describe:
+                    - The key elements of the query.
+                    - The relevant agents and their roles in addressing the query.
+                    - The specific tasks that will be referenced and how their outputs will be used.
+                    - How the final response will be structured based on the gathered information.
+
+                    Crew Context:
+                    {crew_context}
+
+                    Your response should clearly outline the process, ensuring that the user's query is addressed using the detailed information provided by the static crew data.
+
+                    Return 'lfg#' at the end if the user provided the info needed from Tool Context.
             """
         ),
         "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
@@ -216,6 +232,8 @@ def init_session_state():
         'crew_results': None,
         'current_crew_name': None,
         'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
+        'can_run_crew': False,
+        'crew_active_tools': [],
         'tools': [], 
         'new_agents': [], 
         'show_agent_form': False, 

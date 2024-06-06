@@ -9,6 +9,7 @@ langchain-chroma
 python-dotenv
 crewai
 crewai[tools]
+embedchain[postgres]
 browserbase
 pydantic
 chromadb

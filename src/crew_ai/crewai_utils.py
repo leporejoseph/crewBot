@@ -23,7 +23,7 @@ TOOLS = [{"name": tool, "needsApiKey": False, "source": "crewai", "description":
     "WebsiteSearchTool", "XMLSearchTool", "YoutubeChannelSearchTool", "YoutubeVideoSearchTool"]]
 
 class DynamicCrewHandler:
-    def __init__(self, name, memory, agents, tasks, llm, user_prompt, chat_history):
+    def __init__(self, name, memory, agents, tasks, llm, user_prompt, chat_history, tools=None):
         self.name = name
         self.memory = memory
         self.agents = agents
@@ -31,36 +31,40 @@ class DynamicCrewHandler:
         self.llm = llm
         self.user_prompt = user_prompt
         self.chat_history = chat_history
+        self.tools = tools or []
 
     def get_tool_instance(self, tool_name):
         tools = {
-            "SerperDevTool": SerperDevTool(api_key=os.getenv("SERPER_API_KEY")),
-            "BrowserbaseLoadTool": BrowserbaseLoadTool(api_key=os.getenv("BROWSERBASE_API_KEY")),
-            "ScrapeWebsiteTool": ScrapeWebsiteTool(),
-            "DirectoryReadTool": DirectoryReadTool(),
-            "FileReadTool": FileReadTool(),
-            "SeleniumScrapingTool": SeleniumScrapingTool(),
-            "DirectorySearchTool": DirectorySearchTool(),
-            "PDFSearchTool": PDFSearchTool(),
-            "TXTSearchTool": TXTSearchTool(),
-            "CSVSearchTool": CSVSearchTool(),
-            "XMLSearchTool": XMLSearchTool(),
-            "JSONSearchTool": JSONSearchTool(),
-            "DOCXSearchTool": DOCXSearchTool(),
-            "MDXSearchTool": MDXSearchTool(),
-            "PGSearchTool": PGSearchTool(),
-            "WebsiteSearchTool": WebsiteSearchTool(),
-            "GithubSearchTool": GithubSearchTool(),
-            "CodeDocsSearchTool": CodeDocsSearchTool(),
-            "YoutubeVideoSearchTool": YoutubeVideoSearchTool(),
-            "YoutubeChannelSearchTool": YoutubeChannelSearchTool()
+            "SerperDevTool": lambda: SerperDevTool(api_key=os.getenv("SERPER_API_KEY")),
+            "BrowserbaseLoadTool": lambda: BrowserbaseLoadTool(api_key=os.getenv("BROWSERBASE_API_KEY")),
+            "ScrapeWebsiteTool": lambda: ScrapeWebsiteTool(),
+            "DirectoryReadTool": lambda: DirectoryReadTool(),
+            "FileReadTool": lambda: FileReadTool(),
+            "SeleniumScrapingTool": lambda: SeleniumScrapingTool(),
+            "DirectorySearchTool": lambda: DirectorySearchTool(),
+            "PDFSearchTool": lambda: PDFSearchTool(),
+            "TXTSearchTool": lambda: TXTSearchTool(),
+            "CSVSearchTool": lambda: CSVSearchTool(),
+            "XMLSearchTool": lambda: XMLSearchTool(),
+            "JSONSearchTool": lambda: JSONSearchTool(),
+            "DOCXSearchTool": lambda: DOCXSearchTool(),
+            "MDXSearchTool": lambda: MDXSearchTool(),
+            "PGSearchTool": lambda: PGSearchTool(table_name=""),
+            "WebsiteSearchTool": lambda: WebsiteSearchTool(),
+            "GithubSearchTool": lambda: GithubSearchTool(),
+            "CodeDocsSearchTool": lambda: CodeDocsSearchTool(),
+            "YoutubeVideoSearchTool": lambda: YoutubeVideoSearchTool(),
+            "YoutubeChannelSearchTool": lambda: YoutubeChannelSearchTool()
         }
-        return tools.get(tool_name, None)
+        
+        if tool_name in st.session_state.crew_active_tools:
+            return tools[tool_name]()
+        return None
 
     def create_agents(self):
         agents = []
         for i, agent in enumerate(self.agents):
-            tools = [self.get_tool_instance(tool) for tool in agent.get("tools", [])]
+            tools = [self.get_tool_instance(tool) for tool in agent.get("tools", []) if self.get_tool_instance(tool) is not None]
             goal = agent['goal']
             if i == 0:
                 goal += f"\n\nUse user prompt and Chat history for context.\n\n[Start of user prompt]\n{self.user_prompt}\n[End of user prompt]\n\n[Start of chat history]\n{self.chat_history}\n[End of chat history]"
@@ -79,7 +83,7 @@ class DynamicCrewHandler:
         for task in self.tasks:
             agent = agent_objects[task["agent_index"]]
             context_tasks = [tasks[idx] for idx in task.get("context_indexes", [])]
-            tools = [self.get_tool_instance(tool) for tool in task.get("tools", [])]
+            tools = [self.get_tool_instance(tool) for tool in task.get("tools", []) if self.get_tool_instance(tool) is not None]
             tasks.append(Task(
                 description=task["description"],
                 agent=agent,

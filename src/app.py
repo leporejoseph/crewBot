@@ -326,7 +326,7 @@ else:
         chat_messages_history.add_user_message(user_input)
 
         if any(st.session_state.crewai_crew_selected):
-            # region Run CrewAi
+        # region Run CrewAi
             all_crews_finished = False
             for i, selected in enumerate(st.session_state.crewai_crew_selected):
                 if selected:
@@ -335,48 +335,60 @@ else:
                     crew_name = st.session_state.crew_list[i]['name']
                     st.session_state.current_crew_name = crew_name
                     agents = st.session_state.crew_list[i]['agents']
-                    crew_context = json.dumps(st.session_state.crew_list[i]) 
-                
-                    # Call get_response with the context of the current crew
+                    crew_context = json.dumps(st.session_state.crew_list[i])
+
+                    # Update active tools based on the current crew
+                    crew = st.session_state.crew_list[i]
+                    st.session_state.crew_active_tools = set()
+                    for agent in crew["agents"]:
+                        for tool in agent.get("tools", []):
+                            st.session_state.crew_active_tools.add(tool)
+                    for task in crew["tasks"]:
+                        for tool in task.get("tools", []):
+                            st.session_state.crew_active_tools.add(tool)
+
+                    # Check if the user's input satisfies the crew's tasks requirements
                     get_response(st.session_state.llm, user_input, "", chat_messages_history, context=crew_context)
-
-                    with st.chat_message("assistant"):
-                        with st.spinner(f"{crew_name} Working..."):
-                            with st.expander(f"{crew_name} Interaction Logs", False):
-                                sys.stdout = StreamToExpander(st, crew_name, agents)
-
-                                dynamic_crew_handler = DynamicCrewHandler(
-                                    name=crew_name,
-                                    memory=st.session_state.crew_list[i]["memory"],
-                                    agents=st.session_state.crew_list[i]["agents"],
-                                    tasks=st.session_state.crew_list[i]["tasks"],
-                                    llm=st.session_state.llm,
-                                    user_prompt=user_input,
-                                    chat_history=chat_messages_history
-                                )
-
-                                response, new_crew_data = dynamic_crew_handler.create_crew()
-                                agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
-                                st.dataframe(agent_df, hide_index=True)
-                                task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
-                                st.dataframe(task_df, hide_index=True)
-
-                                elapsed_time = time.time() - start_time
-                                st.empty().text(f"Total Time Elapsed: {elapsed_time:.2f} seconds")
-                                all_crews_finished = True
-                    if not st.session_state.langchain_export_pdf_selected:# We will be summarizing the response in the download PDF section
+                    
+                    if st.session_state.can_run_crew:
                         with st.chat_message("assistant"):
-                            response_text = response[0] if isinstance(response, tuple) else response
-                            st.write(response_text)
-                            chat_messages_history.add_ai_message(response_text)
-                            save_chat_history() 
+                            with st.spinner(f"{crew_name} Working..."):
+                                with st.expander(f"{crew_name} Interaction Logs", False):
+                                    sys.stdout = StreamToExpander(st, crew_name, agents)
+
+                                    dynamic_crew_handler = DynamicCrewHandler(
+                                        name=crew_name,
+                                        memory=st.session_state.crew_list[i]["memory"],
+                                        agents=st.session_state.crew_list[i]["agents"],
+                                        tasks=st.session_state.crew_list[i]["tasks"],
+                                        llm=st.session_state.llm,
+                                        user_prompt=user_input,
+                                        chat_history=chat_messages_history,
+                                        tools=[tool for tool in st.session_state.crew_active_tools]
+                                    )
+
+                                    response, new_crew_data = dynamic_crew_handler.create_crew()
+                                    agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
+                                    st.dataframe(agent_df, hide_index=True)
+                                    task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
+                                    st.dataframe(task_df, hide_index=True)
+
+                                    elapsed_time = time.time() - start_time
+                                    st.empty().text(f"Total Time Elapsed: {elapsed_time:.2f} seconds")
+                                    all_crews_finished = True
+                        if not st.session_state.langchain_export_pdf_selected:  # We will be summarizing the response in the download PDF section
+                            with st.chat_message("assistant"):
+                                response_text = response[0] if isinstance(response, tuple) else response
+                                st.write(response_text)
+                                chat_messages_history.add_ai_message(response_text)
+                                save_chat_history()
 
             if all_crews_finished:
                 for i in range(len(st.session_state.crewai_crew_selected)):
                     if st.session_state.crewai_crew_selected[i]:
                         toggle_key = f"crew_{i}_selected"
                         st.session_state[toggle_key] = False
-            
+
             # endregion
         else:
             # region Primary LLM
@@ -386,7 +398,7 @@ else:
                     with st.chat_message("assistant"):
                         st.write(response.get('answer', "No documents found, please upload documents."))
                         chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
-                        save_chat_history()  
+                        save_chat_history()
                         with st.expander("Sources", False):
                             for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
                                 st.write(f"- {source_info}")
@@ -394,14 +406,14 @@ else:
                     st.error("QA Chain is not initialized. Please check the configuration.")
             else:
                 get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
-                save_chat_history()  
+                save_chat_history()
 
             # endregion
 
         # Export PDF. This is put at the end to get the full context of current chat history.
         if st.session_state.langchain_export_pdf_selected:
             get_response(st.session_state.llm, user_input, "export_pdf", chat_messages_history, context="")
-            save_chat_history() 
+            save_chat_history()
 
 # endregion
 
@@ -508,7 +520,6 @@ if st.session_state.rerun_needed:
 
 #endregion
 
-#region CrewAi Sidebar List
 #region CrewAi Sidebar List
 @st.experimental_fragment
 def display_crew_list():

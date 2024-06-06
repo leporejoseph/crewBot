@@ -9,3 +9,8 @@ src/utils/__pycache__/llm_handler.cpython*
 src/utils/__pycache__/streamlit_expander.cpython*
 src/db/chroma.sqlite3
 src/crew_ai/__pycache__/crewai_utils.cpython*
+src/crew_ai/__pycache__/crewai_utils.cpython-312.pyc
+src/db/cc468343-4477-488d-8224-124584355555/data_level0.bin
+src/db/cc468343-4477-488d-8224-124584355555/length.bin
+src/db/cc468343-4477-488d-8224-124584355555/link_lists.bin
+src/db/cc468343-4477-488d-8224-124584355555/header.bin

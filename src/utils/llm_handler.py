@@ -77,40 +77,53 @@ async def get_response_async(llm, user_query, tool, chat_messages_history, conte
         if llm is None:
             raise ValueError("LLM is not initialized.")
 
+        tools_used = [tool for tool in st.session_state.crew_active_tools]
+
         if any(st.session_state.crewai_crew_selected):
             prompt = st.session_state.get('crewai_pre_prompt', st.session_state['prompt'])
-        elif tool=="export_pdf":
+            tool_context = ", ".join(tools_used)
+            input_data = {"query": user_query, "crew_context": context, "tool_context": tool_context}
+        elif tool == "export_pdf":
             prompt = st.session_state.get('export_pdf_prompt', st.session_state['prompt'])
+            input_data = {"query": user_query, "context": context, "history": chat_messages_history}
         else:
             prompt = st.session_state['prompt']
+            input_data = {"query": user_query, "context": context, "history": chat_messages_history}
 
         parser = StrOutputParser()
         chain = prompt | llm | parser
-        
+
         with st.chat_message("assistant"):
             first_output_placeholder = st.empty()
-            first_output = ""  
-            async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history}):
-                first_output += chunk
-                first_output_placeholder.write(first_output)  
+            first_output = ""
 
-            if tool=="export_pdf":
+            async for chunk in chain.astream(input_data):
+                first_output += chunk
+                first_output_placeholder.write(first_output)
+
+            if tool == "export_pdf":
                 with st.spinner(f"Generating PDF..."):
                     pdf_output = ""
-                    async for chunk in chain.astream({"query": user_query, "context": context, "history": chat_messages_history}):
+                    async for chunk in chain.astream(input_data):
                         pdf_output += chunk
 
                     crew_name = "Crew"  # Default crew name if not found
-                    if not st.session_state.get("current_crew_name", crew_name) is None:
+                    if st.session_state.get("current_crew_name"):
                         crew_name = st.session_state.current_crew_name
 
                     download_pdf(pdf_output, crew_name)
 
+            if any(st.session_state.crewai_crew_selected):
+                if "lfg#" in first_output.lower():
+                    st.session_state.update({"can_run_crew": True})
+                else:
+                    st.session_state.update({"can_run_crew": False})
+
             chat_messages_history.add_ai_message(first_output)
-               
+
     except Exception as e:
         st.error(f"Error in get_response_async: {e}")
         return ""
-    
+
 def get_response(llm, user_query, tool, chat_messages_history, context=""):
     return asyncio.run(get_response_async(llm, user_query, tool, chat_messages_history, context))
