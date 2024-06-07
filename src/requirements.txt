@@ -2,7 +2,6 @@ browserbase==0.1.4
 chromadb==0.5.0 
 crewai==0.30.11 
 crewai-tools==0.2.6
-embedchain==0.1.105
 fpdf==1.7.2
 huggingface-hub==0.22.1 
 langchain==0.1.19 
