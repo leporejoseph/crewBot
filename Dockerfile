@@ -27,4 +27,4 @@ EXPOSE 8008
 HEALTHCHECK CMD curl --fail http://localhost:8008/_stcore/health
 
 # Command to run the application
-ENTRYPOINT ["streamlit", "run", "src/app.py", "--server.port=8008", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "src/app.py", "--server.port=8008", "--server.address=localhost"]

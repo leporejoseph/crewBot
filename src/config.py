@@ -37,10 +37,11 @@ agent_colors = [
 ]
 
 def ensure_json_file(file_path, default_data):
-    """Ensures a JSON file exists at the specified path, and creates it with default data if it doesn't."""
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     if not os.path.exists(file_path):
         with open(file_path, 'w') as file:
             json.dump(default_data, file, indent=4)
+
 
 preferences_file = os.path.join('utils', 'user_preferences.json')
 chat_history_file = os.path.join('utils', 'user_chat_history.json')
