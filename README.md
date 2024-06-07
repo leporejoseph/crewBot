@@ -256,7 +256,7 @@ BROWSERBASE_PROJECT_ID=Optional
 2. Import/export crews in UI.
 3. Add more LLM settings like rate limiting, etc.
 
-## Pricing, Accuracy, and Speed Examples Using Example Crew #Business Requirements Crew#
+## Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
 
 | LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
