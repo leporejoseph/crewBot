@@ -8,10 +8,9 @@ CrewBot assists users in the creation, editing, and running of a crew all within
 CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
 ## Connect with Me
-
-You can connect with me on LinkedIn:  [Joseph LePore](https://www.linkedin.com/in/joseph-lepore-062561b3)
-
----
+|                    | Contact Info         |
+|--------------------|----------------------|
+| Joseph LePore  | [![Linkedin Badge](https://img.shields.io/badge/-Linkedin-blue?style=flat&logo=Linkedin&logoColor=white)](https://www.linkedin.com/in/joseph-lepore-062561b3/)    |
 
 ## 🚀 Get Started 
 
@@ -253,6 +252,6 @@ BROWSERBASE_PROJECT_ID=Optional
 | LM Studio : dolphin-2.9-llama3-8b-GGUF       | Free            | Lowest: Depends on Hardware and Model   | Lowest: Depends on Hardware and Model |
 | Groq : llama3-70b-8192           | Free tier but limited by tokens and requests per minute          | Medium     | Fastest   |
 
-## License
+## 🔑 License
 
 This repository is released under the [Apache-2.0](LICENSE.md) License.
