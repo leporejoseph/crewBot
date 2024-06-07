@@ -16,12 +16,8 @@ chromadb
 tiktoken
 PyPDF2
 python-docx
-llama_index
-llama-index-embeddings-langchain
-llama-index-vector-stores-faiss
 transformers
 torch
 huggingface-hub
 pandas
-faiss-cpu
 FPDF
