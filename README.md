@@ -7,25 +7,13 @@ CrewBot assists users in the creation, editing, and running of a crew all within
 
 CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
-## Table of Contents
-- [Get Started](#get-started)
-- [Tutorials](#tutorials)
-- [Available LLMs](#available-llms)
-- [Advanced Development](#advanced-development)
-- [Known Bugs](#known-bugs)
-- [Future Improvements](#future-improvements)
-- [Pricing, Accuracy, and Speed Examples](#pricing-accuracy-and-speed-examples)
-- [License](#license)
-
----
-
 ## Connect with Me
 
 You can connect with me on LinkedIn:  [Joseph LePore](https://www.linkedin.com/in/joseph-lepore-062561b3)
 
 ---
 
-## Get Started 
+## 🚀 Get Started 
 
 ### Quick Setup with Docker
 
@@ -63,14 +51,14 @@ SERPER_API_KEY=Optional
 BROWSERBASE_PROJECT_ID=Optional
 ```
 
-## Tech Stack
+## 💻 Technology Stack
 - Python
 - Streamlit
 - LangChain
 - CrewAi
 - Docker
 
-## Available LLMs
+## 🤖 Available LLMs
 
 ### OpenAI
 - **Pros**: High accuracy, wide range of capabilities.
@@ -84,7 +72,7 @@ BROWSERBASE_PROJECT_ID=Optional
 - **Pros**: High performance, scalable.
 - **Cons**: Limited availability, requires API key.
 
-## Tutorials
+## 📘 Tutorials
 
 ### Create a Crew
 <details>
@@ -164,7 +152,7 @@ BROWSERBASE_PROJECT_ID=Optional
 
 </details>
 
-## Advanced Development
+## 🤓 Advanced Development
 
 ### Important File Functions List
 
@@ -247,16 +235,17 @@ BROWSERBASE_PROJECT_ID=Optional
 
 </details>
 
-## Known Bugs
-1. Streamlit refresh and optimization issues with it.
-2. Editing an agent/task may cause UI issues.
+## 🕷️ Known Bugs
+- Streamlit refresh and optimization issues with it.
+- Editing an agent/task may cause UI issues.
+- Inconsistencies with saving crew tools.
 
-## Future Improvements
-1. Custom tool creation for CrewAI built-in UI.
-2. Import/export crews in UI.
-3. Add more LLM settings like rate limiting, etc.
+## 🙏 Future Improvements
+- Custom tool creation for CrewAI built-in UI.
+- Import/export crews in UI.
+- Add more LLM settings like rate limiting, etc.
 
-## Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
+## 💸 Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
 
 | LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
