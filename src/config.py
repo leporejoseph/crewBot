@@ -143,8 +143,32 @@ def clear_chat_history():
     st.session_state["chat_history"] = chat_messages_history
 
 def init_session_state():
-    """Initialize session state variables with defaults."""
-    defaults = {
+    """Initialize session state variables with defaults and ensure necessary JSON files exist."""
+    # Ensure necessary JSON files exist with default values
+    ensure_json_file('crew_ai/crews.json', [])
+    ensure_json_file(preferences_file, {
+        "llm_selected": "OpenAI",
+        "lm_studio_model": LM_STUDIO_MODEL,
+        "lm_studio_base_url": LM_STUDIO_BASE_URL,
+        "openai_api_model": OPENAI_MODEL,
+        "show_apikey_toggle": False,
+        "langchain_upload_docs_selected": False,
+        "langchain_export_pdf_selected": False,
+        "active_tools": [],
+        "groq_model_name": GROQ_MODEL
+    })
+    ensure_json_file(chat_history_file, [])
+
+    # Load the JSON data into session state
+    with open('crew_ai/crews.json', 'r') as file:
+        st.session_state['crew_list'] = json.load(file)
+    with open(preferences_file, 'r') as file:
+        st.session_state['user_preferences'] = json.load(file)
+    with open(chat_history_file, 'r') as file:
+        st.session_state['chat_history'] = json.load(file)
+
+    # Initialize other session state variables not loaded from files
+    st.session_state.update({
         "lmStudio_llm_selected": False,
         "lm_studio_model": LM_STUDIO_MODEL,
         "lm_studio_base_url": LM_STUDIO_BASE_URL,
@@ -153,7 +177,6 @@ def init_session_state():
         "messages": [],
         "llm_selection_changed": False,
         "callback_handler": StreamingStdOutCallbackHandler(),
-        "chat_history": StreamlitChatMessageHistory(key="chat_messages"),
         "prompt": PromptTemplate(
             input_variables=["history", "context", "query"],
             template="""
@@ -197,7 +220,7 @@ def init_session_state():
                 Tool Context:
                 {tool_context}
 
-                Did the user's query contain the requirements needed for the Context? Disect the users Query to map out the required context. 
+                Did the user's query contain the requirements needed for the Context? Dissect the users Query to map out the required context. 
                     Example: Query=Can you summarize this site google.com? If using the WebsiteSearchTool you may map it our like this: 
                     search query = Query
                     URL of the website = google.com
@@ -231,7 +254,6 @@ def init_session_state():
         "vectorstore": None,
         "retriever": None,
         "qa_chain": None,
-        'crew_list': json.load(open('crew_ai/crews.json')),
         'rerun_needed': False,
         'edit_agent_index': None,
         'edit_task_index': None,
@@ -253,32 +275,7 @@ def init_session_state():
         'langchain_upload_docs_selected': False, 
         'langchain_export_pdf_selected': False,
         'export_pdf_selected': False
-    }
-
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-    ensure_json_file('crew_ai/crews.json', [])
-    ensure_json_file(preferences_file, {
-        "llm_selected": "OpenAI",
-        "lm_studio_model": LM_STUDIO_MODEL,
-        "lm_studio_base_url": LM_STUDIO_BASE_URL,
-        "openai_api_model": OPENAI_MODEL,
-        "show_apikey_toggle": False,
-        "langchain_upload_docs_selected": False,
-        "langchain_export_pdf_selected": False,
-        "active_tools": [],
-        "groq_model_name": GROQ_MODEL
     })
-    ensure_json_file(chat_history_file, [])
-
-    with open('crew_ai/crews.json', 'r') as file:
-        st.session_state['crew_list'] = json.load(file)
-    with open(preferences_file, 'r') as file:
-        st.session_state['user_preferences'] = json.load(file)
-    with open(chat_history_file, 'r') as file:
-        st.session_state['chat_history'] = json.load(file)
 
     load_user_preferences()
     load_chat_history()
