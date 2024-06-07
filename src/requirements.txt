@@ -21,5 +21,4 @@ streamlit==1.35.0
 streamlit-chat==0.1.1 
 streamlit-extras==0.4.0 
 tiktoken==0.7.0 
-torch==2.2.1 
 transformers==4.35.2
