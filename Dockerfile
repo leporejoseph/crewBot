@@ -1,9 +1,12 @@
 # app/Dockerfile
 
-FROM python:3.9-slim
+# Use a specific version of Python as the base image
+FROM python:3.10-slim
 
-WORKDIR /src
+# Set the working directory to /app
+WORKDIR /app
 
+# Install necessary packages
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -11,12 +14,17 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/leporejoseph/crewBot.git .
+# Copy the application files into the container
+COPY src/ src/
 
-RUN pip3 install -r requirements.txt
+# Install Python dependencies
+RUN pip3 install -r src/requirements.txt
 
+# Expose the port your app runs on
 EXPOSE 8008
 
+# Healthcheck for the service
 HEALTHCHECK CMD curl --fail http://localhost:8008/_stcore/health
 
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8008", "--server.address=0.0.0.0"]
+# Command to run the application
+ENTRYPOINT ["streamlit", "run", "src/app.py", "--server.port=8008", "--server.address=0.0.0.0"]

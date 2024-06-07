@@ -36,6 +36,12 @@ agent_colors = [
     "#D2691E",  # Chocolate
 ]
 
+def ensure_json_file(file_path, default_data):
+    """Ensures a JSON file exists at the specified path, and creates it with default data if it doesn't."""
+    if not os.path.exists(file_path):
+        with open(file_path, 'w') as file:
+            json.dump(default_data, file, indent=4)
+
 preferences_file = os.path.join('utils', 'user_preferences.json')
 chat_history_file = os.path.join('utils', 'user_chat_history.json')
 
@@ -252,6 +258,27 @@ def init_session_state():
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    ensure_json_file('crew_ai/crews.json', [])
+    ensure_json_file(preferences_file, {
+        "llm_selected": "OpenAI",
+        "lm_studio_model": LM_STUDIO_MODEL,
+        "lm_studio_base_url": LM_STUDIO_BASE_URL,
+        "openai_api_model": OPENAI_MODEL,
+        "show_apikey_toggle": False,
+        "langchain_upload_docs_selected": False,
+        "langchain_export_pdf_selected": False,
+        "active_tools": [],
+        "groq_model_name": GROQ_MODEL
+    })
+    ensure_json_file(chat_history_file, [])
+
+    with open('crew_ai/crews.json', 'r') as file:
+        st.session_state['crew_list'] = json.load(file)
+    with open(preferences_file, 'r') as file:
+        st.session_state['user_preferences'] = json.load(file)
+    with open(chat_history_file, 'r') as file:
+        st.session_state['chat_history'] = json.load(file)
 
     load_user_preferences()
     load_chat_history()
