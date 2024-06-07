@@ -256,14 +256,14 @@ BROWSERBASE_PROJECT_ID=Optional
 2. Import/export crews in UI.
 3. Add more LLM settings like rate limiting, etc.
 
-## Pricing, Accuracy, and Speed Examples
+## Pricing, Accuracy, and Speed Examples Using Example Crew #Business Requirements Crew#
 
-| LLM            | Price per run | Accuracy | Speed  |
+| LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
-| OpenAI         | $$$           | High     | Fast   |
-| LM Studio      | $$            | Medium   | Medium |
-| Groq           | $$$$          | High     | Fast   |
+| OpenAI : Gpt4o         | $.15           | Highest     | Fast   |
+| LM Studio : dolphin-2.9-llama3-8b-GGUF       | Free            | Lowest: Depends on Hardware and Model   | Lowest: Depends on Hardware and Model |
+| Groq : llama3-70b-8192           | Free tier but limited by tokens and requests per minute          | Medium     | Fastest   |
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This repository is released under the [Apache-2.0](LICENSE.md) License.
