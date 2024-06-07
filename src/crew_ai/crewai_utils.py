@@ -74,6 +74,7 @@ class DynamicCrewHandler:
                 backstory=agent["backstory"],
                 llm=self.llm,
                 allow_delegation=agent["allow_delegation"],
+                max_iter=3,
                 tools=tools
             ))
         return agents

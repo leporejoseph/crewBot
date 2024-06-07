@@ -1,6 +1,7 @@
 # src/app.py
 import os, pandas as pd, random, re, time, sys, json
 import streamlit as st
+from datetime import datetime
 from streamlit_card import card
 from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection, get_response
 from utils.document_handler import handle_document_upload
@@ -80,62 +81,127 @@ def show_task_form(): st.session_state.show_task_form = True
 @st.experimental_fragment
 def create_new_agent_form():
     active_tools = st.session_state.get("active_tools", [])
+    all_agents = get_all_agents_from_crews()
+    st.subheader("Add Agent")
+    
+    # Add a selectbox to choose an existing agent
+    selected_agent = st.selectbox("Add New or Existing Agent", ["New Agent"] + [agent["role"] for agent in all_agents])
+
+    role = ""
+    tools = []
+    goal = ""
+    backstory = ""
+    allow_delegation = False
+
+    if selected_agent != "New Agent":
+        agent = next(agent for agent in all_agents if agent["role"] == selected_agent)
+
+        current_date = datetime.now().strftime("%m/%d/%Y")
+        role = f"{agent['role']} - {current_date}"
+        tools = [tool for tool in agent["tools"] if tool in active_tools]
+        goal = agent["goal"]
+        backstory = agent["backstory"]
+        allow_delegation = agent["allow_delegation"]
+
     with st.form(key="agent_form", clear_on_submit=True, border=False):
-        st.subheader("Add Agent")
-        role = st.text_input("Agent Name", key="role_input", placeholder="Research Analyst")
-        tools = st.multiselect("Tools", active_tools, key="tools_input")
-        goal = st.text_area("Goal", key="goal_input", placeholder="Analyze the company website and provided description to extract insights on culture, values, and specific needs.")
-        backstory = st.text_area("Backstory", key="backstory_input", placeholder="Expert in analyzing company cultures and identifying key values and needs from various sources, including websites and brief descriptions.")
+        role = st.text_input("Agent Name", value=role, key="role_input", placeholder="Research Analyst")
+        tools = st.multiselect("Tools", active_tools, default=tools, key="tools_input")
+        goal = st.text_area("Goal", value=goal, key="goal_input", placeholder="Analyze the company website and provided description to extract insights on culture, values, and specific needs.")
+        backstory = st.text_area("Backstory", value=backstory, key="backstory_input", placeholder="Expert in analyzing company cultures and identifying key values and needs from various sources, including websites and brief descriptions.")
         llm = st.text_input("LLM", value=st.session_state.current_llm, key="llm_input", disabled=True)
-        allow_delegation = st.toggle("Allow Delegation", value=False, key="allow_delegation_input")
+        allow_delegation = st.toggle("Allow Delegation", value=allow_delegation, key="allow_delegation_input")
 
         if st.form_submit_button("Add Agent"):
-            st.session_state.new_agents.append({
-                "role": role, "goal": goal, "backstory": backstory, "llm": llm,
-                "allow_delegation": allow_delegation, "tools": tools
-            })
-            st.session_state.update({"show_agent_form": False})
-            update_agent_list()
-            st.rerun()
+            if not role or not goal or not backstory:
+                st.warning("Please fill in the Agent Name, Goal, and Backstory before adding the agent.")
+            else:
+                st.session_state.new_agents.append({
+                    "role": role, "goal": goal, "backstory": backstory, "llm": llm,
+                    "allow_delegation": allow_delegation, "tools": tools
+                })
+                st.session_state.update({"show_agent_form": False})
+                update_agent_list()
+                st.rerun()
+        st.caption("*New agent will be saved once the crew has been created. The task and agent may be edited in sidebar after creation.")
     return False
 
 @st.experimental_fragment
 def create_new_task_form():
     active_tools = st.session_state.get("active_tools", [])
-    all_agents = get_all_agents_from_crews() + st.session_state.new_agents
+    all_agents = st.session_state.new_agents 
     agent_names = [agent['role'] for agent in all_agents]
+    new_tasks = st.session_state.new_tasks
+    all_tasks = get_all_tasks_from_crews() + st.session_state.new_tasks
+
+    st.subheader("Add Task")
+    
+    if not agent_names:
+        st.warning("Please add an agent before you can add a task.")
+        return False
+
+    selected_task = st.selectbox("Add New or Existing Task", ["New Task"] + [task["description"] for task in all_tasks])
+
+    description = ""
+    tools = []
+    expected_output = ""
+    context_indexes = []
+
+    if selected_task != "New Task":
+        task = next(task for task in all_tasks if task["description"] == selected_task)
+
+        description = task["description"]
+        tools = [tool for tool in task["tools"] if tool in active_tools]
+        expected_output = task["expected_output"]
 
     with st.form(key="task_form", clear_on_submit=True, border=False):
-        st.subheader("Add Task")
-        description = st.text_area("Description", key="description_input", placeholder="Analyze the provided company website and the hiring manager's company's domain, description. Focus on understanding the company's culture, values, and mission. Identify unique selling points and specific projects or achievements highlighted on the site. Compile a report summarizing these insights, specifically how they can be leveraged in a job posting to attract the right candidates.")
-        tools = st.multiselect("Tools", active_tools, key="task_tools_input")
-        assigned_agent = st.selectbox("Assigned Agent", agent_names, key="agent_name_input")
-        expected_output = st.text_area("Expected Output", key="expected_output_input", placeholder="A comprehensive report detailing the company's culture, values, and mission, along with specific selling points relevant to the job role. Suggestions on incorporating these insights into the job posting should be included.")
-        context_indexes = st.multiselect("Context for Task", [f'Task {i+1}' for i in range(len(st.session_state.new_tasks))], key="context_indexes_input")
+        description = st.text_area("Description", value=description, key="description_input", placeholder="Analyze the provided company website and the hiring manager's company's domain, description. Focus on understanding the company's culture, values, and mission. Identify unique selling points and specific projects or achievements highlighted on the site. Compile a report summarizing these insights, specifically how they can be leveraged in a job posting to attract the right candidates.")
+        tools = st.multiselect("Tools", active_tools, default=tools, key="task_tools_input")
+        assigned_agent = st.selectbox("Assigned Agent", [""] + agent_names, key="agent_name_input") 
+        expected_output = st.text_area("Expected Output", value=expected_output, key="expected_output_input", placeholder="A comprehensive report detailing the company's culture, values, and mission, along with specific selling points relevant to the job role. Suggestions on incorporating these insights into the job posting should be included.")
+        context_indexes = st.multiselect("Context for Task", [f'Task {i+1}' for i in range(len(new_tasks))], key="context_indexes_input") 
 
         if st.form_submit_button("Add Task"):
-            st.session_state.new_tasks.append({
-                "description": description, "agent_index": agent_names.index(assigned_agent),
-                "expected_output": expected_output,
-                "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
-                "tools": tools
-            })
-            st.session_state.update({"show_task_form": False})
-            update_task_list()
-            st.rerun()
+            if not description or not expected_output:
+                st.warning("Please fill in the Description and Expected Output before adding the task.")
+            elif not assigned_agent:
+                st.warning("Please select an Assigned Agent before adding the task.")
+            else:
+                st.session_state.new_tasks.append({
+                    "description": description,
+                    "agent_index": agent_names.index(assigned_agent) if assigned_agent else -1,
+                    "expected_output": expected_output,
+                    "context_indexes": [int(idx.split()[-1]) - 1 for idx in context_indexes],
+                    "tools": tools
+                })
+                st.session_state.update({"show_task_form": False})
+                update_task_list()
+                st.rerun()
+
+        st.caption("*New task(s) will be saved once the crew has been created. The task and agent may be edited in sidebar after creation.")
     return False
 
 def get_all_agents_from_crews():
     all_agents = []
+    seen_roles = set()
     for crew in st.session_state.crew_list:
-        all_agents.extend(crew["agents"])
+        for agent in crew["agents"]:
+            if agent["role"] not in seen_roles:
+                all_agents.append(agent)
+                seen_roles.add(agent["role"])
+    all_agents.sort(key=lambda agent: agent["role"].lower())
     return all_agents
 
 def get_all_tasks_from_crews():
     all_tasks = []
+    seen_descriptions = set()
     for crew in st.session_state.crew_list:
-        all_tasks.extend(crew["tasks"])
+        for task in crew["tasks"]:
+            if task["description"] not in seen_descriptions:
+                all_tasks.append(task)
+                seen_descriptions.add(task["description"])
+    all_tasks.sort(key=lambda task: task["description"].lower())
     return all_tasks
+
 
 def truncate_text(text, word_limit):
     words = text.split()
@@ -144,10 +210,10 @@ def truncate_text(text, word_limit):
     return text
 
 def update_agent_list():
-    all_agents = get_all_agents_from_crews() + st.session_state.new_agents
+    new_agents = st.session_state.new_agents
     with st.container(border=False):
         agent_cols = st.columns(5)
-        for agent_index, agent in enumerate(all_agents):
+        for agent_index, agent in enumerate(new_agents):
             color_index = agent_index % len(agent_colors)
             with agent_cols[agent_index % 5]:
                 card(
@@ -156,23 +222,23 @@ def update_agent_list():
                     styles=get_card_styles(color_index),
                     key=f"agent-card-{agent_index}-{random.randint(1, 100000)}"
                 )
-        with agent_cols[(len(all_agents)) % 5]:
+        with agent_cols[(len(new_agents)) % 5]:
             card(
-                title="No Agents Added" if len(all_agents) == 0 else "",
-                text="Click Here to Add an Agent" if len(all_agents) == 0 else "Click Here to Add Another Agent",
+                title="No Agents Added" if len(new_agents) == 0 else "",
+                text="Click Here to Add an Agent" if len(new_agents) == 0 else "Click Here to Add Another Agent",
                 on_click=show_agent_form,
                 styles=get_empty_card_styles(),
-                key=f"agent-card-add-new-{len(all_agents)}"
+                key=f"agent-card-add-new-{len(new_agents)}"
             )
 
         if st.session_state.show_agent_form:
             create_new_agent_form()
 
 def update_task_list():
-    all_tasks = get_all_tasks_from_crews() + st.session_state.new_tasks
+    new_tasks = st.session_state.new_tasks
     with st.container(border=False):
         task_cols = st.columns(5)
-        for task_index, task in enumerate(all_tasks):
+        for task_index, task in enumerate(new_tasks):
             color_index = task_index % len(agent_colors)
             agent_role = task.get('agent_role', 'No agent role')
             if 'agent_index' in task and 0 <= task['agent_index'] < len(st.session_state.new_agents):
@@ -192,13 +258,13 @@ def update_task_list():
                     styles=get_card_styles(color_index),
                     key=f"task-card-{task_index}-{random.randint(1, 100000)}"
                 )
-        with task_cols[(len(all_tasks)) % 5]:
+        with task_cols[(len(new_tasks)) % 5]:
             card(
-                title="No Tasks Added" if len(all_tasks) == 0 else "",
-                text="Click Here to Add a Task" if len(all_tasks) == 0 else "Click Here to Add Another Task",
+                title="No Tasks Added" if len(new_tasks) == 0 else "",
+                text="Click Here to Add a Task" if len(new_tasks) == 0 else "Click Here to Add Another Task",
                 on_click=show_task_form,
                 styles=get_empty_card_styles(),
-                key=f"task-card-add-new-{len(all_tasks)}"
+                key=f"task-card-add-new-{len(new_tasks)}"
             )
         if st.session_state.show_task_form:
             create_new_task_form()
@@ -241,7 +307,7 @@ def create_new_crew_container():
 
         with tab3:
             st.subheader("Tasks")
-            all_agents = get_all_agents_from_crews() + st.session_state.new_agents
+            all_agents = st.session_state.new_agents
             if not all_agents:
                 st.warning("Please add an agent before creating a task.")
             else:
@@ -268,25 +334,12 @@ def create_new_crew_container():
                     elif not selected_tasks:
                         st.warning("Please add at least one task before creating a crew.", icon="⚠️")
                     else:
-                        warning_message = None
-                        selected_agent_roles = [agent['role'] for agent in selected_agents]
-
-                        for task in selected_tasks:
-                            if 'agent_index' in task and task['agent_index'] < len(all_agents):
-                                task_agent_role = all_agents[task['agent_index']]['role']
-                                if task_agent_role not in selected_agent_roles:
-                                    warning_message = f"Task {task['description']} has the agent {task_agent_role} assigned. Please remove the task or add the agent."
-                                    break
-
-                        if warning_message:
-                            st.warning(warning_message, icon="⚠️")
-                        else:
-                            crew_data = {"name": crew_name, "agents": selected_agents, "tasks": selected_tasks, "memory": memory}
-                            st.session_state.crew_list.append(crew_data)
-                            update_crew_json(crew_data, len(st.session_state.crew_list) - 1)
-                            for key in ['show_crew_container', 'show_agent_form', 'show_task_form']:
-                                st.session_state[key] = False
-                            st.rerun()
+                        crew_data = {"name": crew_name, "agents": selected_agents, "tasks": selected_tasks, "memory": memory}
+                        st.session_state.crew_list.append(crew_data)
+                        update_crew_json(crew_data, len(st.session_state.crew_list) - 1)
+                        for key in ['show_crew_container', 'show_agent_form', 'show_task_form']:
+                            st.session_state[key] = False
+                        st.rerun()
 
 #endregion
 
@@ -480,7 +533,7 @@ def edit_crew_task(task, task_index, crew_index):
         memory = st.toggle("Memory", value=st.session_state.crew_list[crew_index].get("memory", True), key=f"crew_task_memory_{task_index}_{crew_index}")
         description = st.text_area("Description", value=task["description"], key=f"task_description_{task_index}")
         tools = st.multiselect("Tools", active_tools, default=task.get("tools", []), key=f"task_tools_{task_index}")
-        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"], key=f"task_agent_{task_index}")
+        assigned_agent = st.selectbox("Assigned Agent", agent_names, index=task["agent_index"] if task["agent_index"] < len(agent_names) else 0, key=f"task_agent_{task_index}")
         expected_output = st.text_area("Expected Output", value=task.get("expected_output", ""), key=f"task_expected_output_{task_index}")
 
         # Conditional logic for context task selection

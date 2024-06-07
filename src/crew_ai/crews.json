@@ -9,7 +9,7 @@
                 "backstory": "A visionary in technological trends.",
                 "llm": "LM Studio",
                 "allow_delegation": false,
-                "memory": true
+                "tools": []
             },
             {
                 "role": "Market Research Analyst",
@@ -17,7 +17,7 @@
                 "backstory": "A seasoned professional with a deep understanding of market dynamics.",
                 "llm": "LM Studio",
                 "allow_delegation": false,
-                "memory": true
+                "tools": []
             },
             {
                 "role": "Business Development Consultant",
@@ -25,7 +25,7 @@
                 "backstory": "Seasoned in shaping business strategies.",
                 "llm": "LM Studio",
                 "allow_delegation": false,
-                "memory": true
+                "tools": []
             },
             {
                 "role": "Project Manager",
@@ -33,7 +33,7 @@
                 "backstory": "A skilled manager ensuring projects run smoothly and on time.",
                 "llm": "LM Studio",
                 "allow_delegation": false,
-                "memory": true
+                "tools": []
             },
             {
                 "role": "Summary Agent",
@@ -41,14 +41,19 @@
                 "backstory": "A dedicated summarizer skilled in creating cohesive narratives.",
                 "llm": "LM Studio",
                 "allow_delegation": false,
-                "memory": true
+                "tools": []
             }
         ],
         "tasks": [
             {
                 "description": "Assess the technological aspects of the app's development and write a report on necessary technologies and approaches.",
                 "agent_index": 0,
-                "expected_output": "Technological assessment report in bullet points with architecture details."
+                "expected_output": "Technological assessment report in bullet points with architecture details.",
+                "context_indexes": [],
+                "tools": [
+                    "CodeDocsSearchTool",
+                    "CSVSearchTool"
+                ]
             },
             {
                 "description": "Analyze the market demand for the app and write a report on the ideal customer profile, including three competitors using real related companies with pros and cons.",
@@ -56,7 +61,8 @@
                 "expected_output": "Market analysis report in bullet points.",
                 "context_indexes": [
                     0
-                ]
+                ],
+                "tools": []
             },
             {
                 "description": "Evaluate the business model, focusing on scalability and revenue streams, and create a business plan. Suggest partnerships with real companies.",
@@ -65,7 +71,8 @@
                 "context_indexes": [
                     0,
                     1
-                ]
+                ],
+                "tools": []
             },
             {
                 "description": "Coordinate teams, manage scope, and create a timeline for each section.",
@@ -75,7 +82,8 @@
                     0,
                     1,
                     2
-                ]
+                ],
+                "tools": []
             },
             {
                 "description": "Compile a comprehensive report summarizing all agents' outputs into a cohesive document. Use context from prior tasks to complete dynamic Business Requirement Document.",
@@ -86,7 +94,8 @@
                     1,
                     2,
                     3
-                ]
+                ],
+                "tools": []
             }
         ]
     },
@@ -109,6 +118,87 @@
                 "expected_output": "[*DYNAMIC* template that must be used]\n            [start of DYNAMIC template]\n            ### Business Requirement Document\n            1. **Introduction:**\n                - Purpose: Describes the document's purpose and scope.\n                - Scope: Defines project boundaries.\n                - Objectives: Outlines key goals.\n                - Assumptions: Lists assumptions made.\n                - Constraints: Highlights limitations.\n\n            2. **Project Overview:**\n                - Background: Context on project inception.\n                - Goals: Lists primary goals.\n                - Deliverables: Defines key outputs.\n                - Milestones: Significant milestones.\n\n            3. **Stakeholders:**\n                - List: Name, role, interest, responsibilities.\n\n            4. **Business Requirements:**\n                - Needs: ID, description, priority, rationale from the business consultant's report.\n\n            5. **Functional Requirements:**\n                - Features: ID, description, priority, and acceptance criteria.\n\n            6. **Non-Functional Requirements:**\n                - Attributes: ID, description, type, and acceptance criteria.\n\n            7. **Technical Architecture:**\n                - Overview: Architecture overview derived from the technological expert's report.\n                - Components: Name, description.\n\n            8. **Implementation Plan:**\n                - Strategy: Implementation strategy.\n                - Timeline: Phase, description, duration.\n                - Resources: Defines necessary resources.\n\n            9. **Risk Management:**\n                - Risks: ID, description, likelihood, impact, and mitigation strategies.\n\n            10. **Value:**\n                - Estimate of total Development Costs.\n                    - Per Quarter and Year\n                - Estimate of Marketing Costs\n                    - Per Quarter and Year\n                - Estimate of Business Operations Costs.\n                    - Per Quarter and Year\n                - Estimate Total of Rate of Return\n                    - Per Quarter and Year\n\n            11. **Conclusion:**\n                - Summary: Reiterates key points from all agents.\n\n            12. **Appendices:**\n                - Market Research Analyst: Bullet list from the market research analyst's results.\n                - Technology Expert: Detailed bullet list from the technological expert's results.\n                - Business Development Consultant: Detailed bullet list from the business development consultant's results.\n                - Project Manager: Detailed bullet list from the project manager's results.\n                - Additional information related to the project.\n\n            [end of DYNAMIC template]",
                 "context_indexes": [],
                 "tools": []
+            }
+        ],
+        "memory": true
+    },
+    {
+        "name": "FileReadTool Crew",
+        "agents": [
+            {
+                "role": "File Reader",
+                "goal": "Read and retrieve content from specified files.",
+                "backstory": "A file management expert capable of reading various text-based file formats for data processing and analysis.",
+                "llm": "Groq",
+                "allow_delegation": false,
+                "tools": [
+                    "FileReadTool"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "description": "Read the content of a specified file and provide the retrieved data.",
+                "agent_index": 0,
+                "expected_output": "Content of the specified file.",
+                "context_indexes": [],
+                "tools": [
+                    "FileReadTool"
+                ]
+            }
+        ],
+        "memory": true
+    },
+    {
+        "name": "DirectorySearchTool Crew",
+        "agents": [
+            {
+                "role": "Directory Searcher",
+                "goal": "Perform semantic searches within directory contents.",
+                "backstory": "A search specialist leveraging advanced retrieval techniques to find relevant information within directory files.",
+                "llm": "Groq",
+                "allow_delegation": false,
+                "tools": [
+                    "DirectorySearchTool"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "description": "Conduct a semantic search within the specified directory to find relevant content.",
+                "agent_index": 0,
+                "expected_output": "Relevant content matching the search query within the specified directory.",
+                "context_indexes": [],
+                "tools": [
+                    "DirectorySearchTool"
+                ]
+            }
+        ],
+        "memory": true
+    },
+    {
+        "name": "PDFSearchTool Crew",
+        "agents": [
+            {
+                "role": "PDF Searcher",
+                "goal": "Perform semantic searches within PDF documents.",
+                "backstory": "A document analysis expert specializing in extracting relevant information from large PDF files.",
+                "llm": "Groq",
+                "allow_delegation": false,
+                "tools": [
+                    "PDFSearchTool"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "description": "Search within a specified PDF document for relevant content based on a query.",
+                "agent_index": 0,
+                "expected_output": "Relevant content matching the search query within the PDF document.",
+                "context_indexes": [],
+                "tools": [
+                    "PDFSearchTool"
+                ]
             }
         ],
         "memory": true
