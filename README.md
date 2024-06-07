@@ -1,4 +1,4 @@
-![CrewBot](src/crew_ai/crewbot_assistant.png)
+<img src="src/crew_ai/crewbot_assistant_row.gif" alt="fabriclogo" width="1000" height="400"/>
 
 # CrewBot: Your AI Assistant
 CrewBot is a Python-based AI application tailored to enhance business analysis and project management tasks. It leverages multiple AI capabilities, offering options between OpenAI's LLM, LM Studio, and Groq configurations. CrewBot is a full conversational chatbot that allows you to enable/disable crews in a given conversation, using the query and chat history as context. It uses pre-prompt engineering to assist task completion for the crews.
