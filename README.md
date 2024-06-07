@@ -1,7 +1,6 @@
+![CrewBot](src/crew_ai/crewbot_assistant.png)
+
 # CrewBot: Your AI Assistant
-
-![CrewBot](./images/crewbot_assistant.png)
-
 CrewBot is a Python-based AI application tailored to enhance business analysis and project management tasks. It leverages multiple AI capabilities, offering options between OpenAI's LLM, LM Studio, and Groq configurations. CrewBot is a full conversational chatbot that allows you to enable/disable crews in a given conversation, using the query and chat history as context. It uses pre-prompt engineering to assist task completion for the crews.
 
 CrewBot assists users in the creation, editing, and running of a crew all within one chatbot interface, eliminating the need for coding. It allows the ability to run multiple crews in sequential order. CrewBot also features an export PDF option that generates a summary of your conversation history, providing a downloadable Streamlit button in the chat.
@@ -22,7 +21,7 @@ CrewBot will ask for required agent parameters if it does not have them and need
 
 ## Connect with Me
 
-You can connect with me on LinkedIn:  [Joseph Lepore](https://www.linkedin.com/in/joseph-lepore-062561b3)
+You can connect with me on LinkedIn:  [Joseph LePore](https://www.linkedin.com/in/joseph-lepore-062561b3)
 
 ---
 
@@ -257,14 +256,14 @@ BROWSERBASE_PROJECT_ID=Optional
 2. Import/export crews in UI.
 3. Add more LLM settings like rate limiting, etc.
 
-## Pricing, Accuracy, and Speed Examples
+## Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
 
-| LLM            | Price per run | Accuracy | Speed  |
+| LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
-| OpenAI         | $$$           | High     | Fast   |
-| LM Studio      | $$            | Medium   | Medium |
-| Groq           | $$$$          | High     | Fast   |
+| OpenAI : Gpt4o         | $.15           | Highest     | Fast   |
+| LM Studio : dolphin-2.9-llama3-8b-GGUF       | Free            | Lowest: Depends on Hardware and Model   | Lowest: Depends on Hardware and Model |
+| Groq : llama3-70b-8192           | Free tier but limited by tokens and requests per minute          | Medium     | Fastest   |
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This repository is released under the [Apache-2.0](LICENSE.md) License.
