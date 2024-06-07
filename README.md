@@ -157,10 +157,10 @@ BROWSERBASE_PROJECT_ID=Optional
 
 ## Advanced Development
 
-### Function List
+### Important File Functions List
 
 <details>
-<summary>src/app.py Functions</summary>
+<summary>src/app.py</summary>
 
 - `initialize_app`: Sets up the initial application state.
 - `init_session_state`: Initializes session state variables with defaults.
@@ -181,7 +181,7 @@ BROWSERBASE_PROJECT_ID=Optional
 </details>
 
 <details>
-<summary>src/crew_ai/crewai_utils.py Functions</summary>
+<summary>src/crew_ai/crewai_utils.py</summary>
 
 - `get_tool_instance`: Returns an instance of the specified tool.
 - `create_agents`: Creates agent instances for the crew.
@@ -193,7 +193,7 @@ BROWSERBASE_PROJECT_ID=Optional
 </details>
 
 <details>
-<summary>src/utils/llm_handler.py Functions</summary>
+<summary>src/utils/llm_handler.py</summary>
 
 - `init_llm`: Initializes the LLM based on the selected model.
 - `set_initial_llm`: Sets the initial LLM state.
@@ -207,7 +207,7 @@ BROWSERBASE_PROJECT_ID=Optional
 
 
 <details>
-<summary>src/utils/document_handler.py Functions</summary>
+<summary>src/utils/document_handler.py</summary>
 
 - `handle_document_upload`: Handles document upload and processing.
 - `process_uploaded_files`: Processes uploaded files and returns a list of documents.
@@ -221,7 +221,7 @@ BROWSERBASE_PROJECT_ID=Optional
 </details>
 
 <details>
-<summary>src/config.py Functions</summary>
+<summary>src/config.py</summary>
 
 - `initialize_app`: Initializes the application and loads environment variables.
 - `get_current_preferences`: Retrieves current user preferences.
