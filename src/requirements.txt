@@ -1,5 +1,5 @@
 browserbase==0.1.4
-chromadb==0.5.0 
+chromadb==0.4.24
 crewai==0.30.11 
 crewai-tools==0.2.6
 fpdf==1.7.2
