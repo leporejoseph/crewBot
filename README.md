@@ -7,25 +7,13 @@ CrewBot assists users in the creation, editing, and running of a crew all within
 
 CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
-## Table of Contents
-- [Get Started](#get-started)
-- [Tutorials](#tutorials)
-- [Available LLMs](#available-llms)
-- [Advanced Development](#advanced-development)
-- [Known Bugs](#known-bugs)
-- [Future Improvements](#future-improvements)
-- [Pricing, Accuracy, and Speed Examples](#pricing-accuracy-and-speed-examples)
-- [License](#license)
-
----
-
 ## Connect with Me
 
 You can connect with me on LinkedIn:  [Joseph LePore](https://www.linkedin.com/in/joseph-lepore-062561b3)
 
 ---
 
-## Get Started 
+## 🚀 Get Started 
 
 ### Quick Setup with Docker
 
@@ -33,15 +21,15 @@ To get started quickly, you can use Docker to set up the project.
 
 ```sh
 # Build the Docker image
-docker build -t crewai .
+docker build -t crewbot .
 
 # Run the Docker container
-docker run -d -p 8501:8501 --name crewai_app crewai
+docker run -d -p 8501:8501 --name crewbot_app crewbot
 ```
 
 ### Quick Setup with Streamlit
 
-If you prefer using Streamlit to run the application locally, follow these steps:
+If you prefer using Streamlit, follow these steps:
 
 ```sh
 # Install the required libraries
@@ -53,7 +41,7 @@ streamlit run app.py
 
 ### Environment Setup
 
-Create a `.env` file in the root directory of your project and add the following keys:
+Create a `.env` file in the root directory of your project if it does not already exists and add the following optional keys:
 
 ```plaintext
 GROQ_API_KEY=Optional
@@ -63,14 +51,14 @@ SERPER_API_KEY=Optional
 BROWSERBASE_PROJECT_ID=Optional
 ```
 
-## Tech Stack
+## 💻 Technology Stack
 - Python
 - Streamlit
 - LangChain
 - CrewAi
 - Docker
 
-## Available LLMs
+## 🤖 Available LLMs
 
 ### OpenAI
 - **Pros**: High accuracy, wide range of capabilities.
@@ -84,7 +72,7 @@ BROWSERBASE_PROJECT_ID=Optional
 - **Pros**: High performance, scalable.
 - **Cons**: Limited availability, requires API key.
 
-## Tutorials
+## 📘 Tutorials
 
 ### Create a Crew
 <details>
@@ -164,7 +152,7 @@ BROWSERBASE_PROJECT_ID=Optional
 
 </details>
 
-## Advanced Development
+## 🤓 Advanced Development
 
 ### Important File Functions List
 
@@ -247,20 +235,21 @@ BROWSERBASE_PROJECT_ID=Optional
 
 </details>
 
-## Known Bugs
-1. Streamlit refresh and optimization issues with it.
-2. Editing an agent/task may cause UI issues.
+## 🕷️ Known Bugs
+- Streamlit refresh and optimization issues with it.
+- Editing an agent/task may cause UI issues.
+- Inconsistencies with saving crew tools.
 
-## Future Improvements
-1. Custom tool creation for CrewAI built-in UI.
-2. Import/export crews in UI.
-3. Add more LLM settings like rate limiting, etc.
+## 🙏 Future Improvements
+- Custom tool creation for CrewAI built-in UI.
+- Import/export crews in UI.
+- Add more LLM settings like rate limiting, etc.
 
-## Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
+## 💸 Pricing, Accuracy, and Speed Examples Using Example Crew Business Requirements Crew
 
 | LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
-| OpenAI : Gpt4o         | $.15           | Highest     | Fast   |
+| OpenAI : Gpt4o         | $0.15 - $0.20           | Highest     | Fast   |
 | LM Studio : dolphin-2.9-llama3-8b-GGUF       | Free            | Lowest: Depends on Hardware and Model   | Lowest: Depends on Hardware and Model |
 | Groq : llama3-70b-8192           | Free tier but limited by tokens and requests per minute          | Medium     | Fastest   |
 
