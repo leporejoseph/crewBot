@@ -21,15 +21,15 @@ To get started quickly, you can use Docker to set up the project.
 
 ```sh
 # Build the Docker image
-docker build -t crewai .
+docker build -t crewbot .
 
 # Run the Docker container
-docker run -d -p 8501:8501 --name crewai_app crewai
+docker run -d -p 8501:8501 --name crewbot_app crewbot
 ```
 
 ### Quick Setup with Streamlit
 
-If you prefer using Streamlit to run the application locally, follow these steps:
+If you prefer using Streamlit, follow these steps:
 
 ```sh
 # Install the required libraries
@@ -41,7 +41,7 @@ streamlit run app.py
 
 ### Environment Setup
 
-Create a `.env` file in the root directory of your project and add the following keys:
+Create a `.env` file in the root directory of your project if it does not already exists and add the following optional keys:
 
 ```plaintext
 GROQ_API_KEY=Optional
