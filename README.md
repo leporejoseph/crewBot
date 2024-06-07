@@ -21,7 +21,7 @@ CrewBot will ask for required agent parameters if it does not have them and need
 
 ## Connect with Me
 
-You can connect with me on LinkedIn:  [Joseph Lepore](https://www.linkedin.com/in/joseph-lepore-062561b3)
+You can connect with me on LinkedIn:  [Joseph LePore](https://www.linkedin.com/in/joseph-lepore-062561b3)
 
 ---
 
