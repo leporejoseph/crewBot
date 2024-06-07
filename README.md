@@ -249,7 +249,7 @@ BROWSERBASE_PROJECT_ID=Optional
 
 | LLM : Model            | Price per run | Accuracy | Speed  |
 |----------------|---------------|----------|--------|
-| OpenAI : Gpt4o         | $.15           | Highest     | Fast   |
+| OpenAI : Gpt4o         | $0.15 - $0.20           | Highest     | Fast   |
 | LM Studio : dolphin-2.9-llama3-8b-GGUF       | Free            | Lowest: Depends on Hardware and Model   | Lowest: Depends on Hardware and Model |
 | Groq : llama3-70b-8192           | Free tier but limited by tokens and requests per minute          | Medium     | Fastest   |
 
