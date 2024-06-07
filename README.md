@@ -2,7 +2,11 @@
 
 ![CrewBot](./images/crewbot_assistant.png)
 
-CrewBot is a Python-based AI application tailored to enhance business analysis and project management tasks. It leverages multiple AI capabilities, offering options between OpenAI's LLM, LM Studio, and Groq configurations. CrewBot efficiently manages tasks and produces detailed business reports utilizing crew-based task execution. Groq is a high-performance, scalable AI solution included as well.
+CrewBot is a Python-based AI application tailored to enhance business analysis and project management tasks. It leverages multiple AI capabilities, offering options between OpenAI's LLM, LM Studio, and Groq configurations. CrewBot is a full conversational chatbot that allows you to enable/disable crews in a given conversation, using the query and chat history as context. It uses pre-prompt engineering to assist task completion for the crews.
+
+CrewBot assists users in the creation, editing, and running of a crew all within one chatbot interface, eliminating the need for coding. It allows the ability to run multiple crews in sequential order. CrewBot also features an export PDF option that generates a summary of your conversation history, providing a downloadable Streamlit button in the chat.
+
+CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
 ## Table of Contents
 - [Get Started](#get-started)
