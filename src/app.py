@@ -39,7 +39,10 @@ def sidebar_configuration():
         llm_selected = st.selectbox("LLM", llm_options, index=llm_options.index(st.session_state.get("current_llm", "OpenAI")))
         st.session_state.current_llm = llm_selected
         save_preferences_on_change()  # This is correct
-        selection_states = {"OpenAI": "openai_llm_selected", "LM Studio": "lmStudio_llm_selected", "Groq": "groq_llm_selected"}
+        selection_states = {
+            "OpenAI": "openai_llm_selected", 
+            #"LM Studio": "lmStudio_llm_selected", # Commented because it currently does not work in Docker.
+            "Groq": "groq_llm_selected"}
         for key, value in selection_states.items():
             st.session_state[value] = (llm_selected == key)
         toggle_selection(selection_states[llm_selected])
