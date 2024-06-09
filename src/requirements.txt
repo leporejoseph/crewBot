@@ -16,9 +16,7 @@ pydantic
 python-docx
 python-dotenv
 PyPDF2
-sentence-transformers
 streamlit
 streamlit_card
 streamlit-chat
 streamlit-extras
-transformers
