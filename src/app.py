@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import datetime
 from streamlit_card import card
 from utils.llm_handler import set_initial_llm, update_api_key, toggle_selection, get_response
-from utils.document_handler import handle_document_upload
+#from utils.document_handler import handle_document_upload
 from utils.streamlit_expander import StreamToExpander
 from crew_ai.crewai_utils import DynamicCrewHandler, TOOLS, update_crew_json, delete_crew
 from config import (
@@ -41,7 +41,7 @@ def sidebar_configuration():
         save_preferences_on_change()  # This is correct
         selection_states = {
             "OpenAI": "openai_llm_selected", 
-            #"LM Studio": "lmStudio_llm_selected", # Commented because it currently does not work in Docker.
+            "LM Studio": "lmStudio_llm_selected", # Commented because it currently does not work in Docker.
             "Groq": "groq_llm_selected"}
         for key, value in selection_states.items():
             st.session_state[value] = (llm_selected == key)
@@ -66,7 +66,7 @@ def sidebar_configuration():
             st.toast(":robot_face: Chat History Cleared")
 
     with st.sidebar.expander("LangChain Tools :parrot: :link:", True):
-        st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_preferences_on_change)
+        # st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_preferences_on_change)
         st.session_state.langchain_export_pdf_selected = st.toggle("Summarize and Export PDF", key="export_pdf_selected", value=st.session_state.get("langchain_export_pdf_selected", False), on_change=save_preferences_on_change, help="Summarizes the full chat history and exports it as a PDF file.")
 
 sidebar_configuration()
@@ -350,7 +350,7 @@ def create_new_crew_container():
 if st.session_state.show_crew_container:
     create_new_crew_container()
 else:
-    handle_document_upload(st.session_state.langchain_upload_docs_selected)
+    # handle_document_upload(st.session_state.langchain_upload_docs_selected)
 
     for msg in chat_messages_history.messages:
         if msg.type == "ai" and "[DEBUG]:" in msg.content:
@@ -448,21 +448,21 @@ else:
             # endregion
         else:
             # region Primary LLM
-            if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
-                if st.session_state.qa_chain:
-                    response = st.session_state.qa_chain.invoke({"input": user_input})
-                    with st.chat_message("assistant"):
-                        st.write(response.get('answer', "No documents found, please upload documents."))
-                        chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
-                        save_chat_history()
-                        with st.expander("Sources", False):
-                            for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
-                                st.write(f"- {source_info}")
-                else:
-                    st.error("QA Chain is not initialized. Please check the configuration.")
-            else:
-                get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
-                save_chat_history()
+            # if st.session_state.langchain_upload_docs_selected and st.session_state.vectorstore:
+            #     if st.session_state.qa_chain:
+            #         response = st.session_state.qa_chain.invoke({"input": user_input})
+            #         with st.chat_message("assistant"):
+            #             st.write(response.get('answer', "No documents found, please upload documents."))
+            #             chat_messages_history.add_ai_message(response.get('answer', "No documents found, please upload documents."))
+            #             save_chat_history()
+            #             with st.expander("Sources", False):
+            #                 for source_info in {f"{doc.metadata['source']}" for doc in response.get('context', []) if 'source' in doc.metadata}:
+            #                     st.write(f"- {source_info}")
+            #     else:
+            #         st.error("QA Chain is not initialized. Please check the configuration.")
+            # else:
+            get_response(st.session_state.llm, user_input, "", chat_messages_history, context="")
+            save_chat_history()
 
             # endregion
 
