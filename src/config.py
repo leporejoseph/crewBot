@@ -251,7 +251,7 @@ def init_session_state():
             """
         ),
         "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
-        "embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
+        #"embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
         "vectorstore": None,
         "retriever": None,
         "qa_chain": None,
