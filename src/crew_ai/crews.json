@@ -50,10 +50,7 @@
                 "agent_index": 0,
                 "expected_output": "Technological assessment report in bullet points with architecture details.",
                 "context_indexes": [],
-                "tools": [
-                    "CodeDocsSearchTool",
-                    "CSVSearchTool"
-                ]
+                "tools": []
             },
             {
                 "description": "Analyze the market demand for the app and write a report on the ideal customer profile, including three competitors using real related companies with pros and cons.",

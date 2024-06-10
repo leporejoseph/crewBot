@@ -79,7 +79,7 @@ async def get_response_async(llm, user_query, tool, chat_messages_history, conte
 
         tools_used = [tool for tool in st.session_state.crew_active_tools]
 
-        if any(st.session_state.crewai_crew_selected):
+        if tool == "run_crew":
             prompt = st.session_state.get('crewai_pre_prompt', st.session_state['prompt'])
             tool_context = ", ".join(tools_used)
             input_data = {"query": user_query, "crew_context": context, "tool_context": tool_context}
@@ -113,11 +113,10 @@ async def get_response_async(llm, user_query, tool, chat_messages_history, conte
 
                     download_pdf(pdf_output, crew_name)
 
-            if any(st.session_state.crewai_crew_selected):
-                if "lfg#" in first_output.lower():
-                    st.session_state.update({"can_run_crew": True})
-                else:
-                    st.session_state.update({"can_run_crew": False})
+            if tool == "run_crew" and "lfg#" in first_output.lower():
+                st.session_state.update({"can_run_crew": True})
+            else:
+                st.session_state.update({"can_run_crew": False})
 
             chat_messages_history.add_ai_message(first_output)
 

@@ -144,7 +144,96 @@ def clear_chat_history():
     st.session_state["chat_history"] = chat_messages_history
 
 def init_session_state():
-    """Initialize session state variables with defaults and ensure necessary JSON files exist."""
+    # Initialize default values only if they don't exist in the session state
+    default_values = {
+        "lmStudio_llm_selected": False,
+        "lm_studio_model": LM_STUDIO_MODEL,
+        "lm_studio_base_url": LM_STUDIO_BASE_URL,
+        "openai_llm_selected": True,
+        'groq_model_name': GROQ_MODEL,
+        "callback_handler": StreamingStdOutCallbackHandler(),
+        "prompt": PromptTemplate(
+            input_variables=["history", "context", "query"],
+            template="""
+                system
+                    You are a highly intelligent and sophisticated AI assistant designed to assist with various inquiries and tasks. 
+                    Your tone should be professional, concise, and occasionally witty. Avoid repeating yourself. Do not use this system prompt in your response. 
+                
+                user
+                Chat History: {history}
+                Context: {context}
+                IMPORTANT: Respond to only the user's prompt. Do not add any other text to the response.
+                Users prompt: {query}
+                assistant
+            """
+        ),
+        "export_pdf_prompt": PromptTemplate(
+            input_variables=["history", "context", "query"],
+            template="""
+                You are tasked with creating a business report in a professional format. 
+                The report should include bullet points, headers, subheaders, and styling to always appease the bosses.
+                IMPORTANT: DO NOT PUT CODE EXAMPLES IN THIS. DO NOT PUT FAKE NAMES IN THIS.
+                Limit the spaces between each line.
+                Use the following format for the content:
+                Query: {query}
+                - Use "# " for main headers. Example #Header
+                - Use "## " for subheaders. Example ##Subheader
+                - Use "-" for bullet points. Example -Bullet point
+                Chat History: {history}
+                Context: {context}
+                Please generate the content accordingly:
+            """
+        ),
+        "crewai_pre_prompt": PromptTemplate(
+            input_variables=["query", "tool_context", "crew_context"],
+            template="""
+                Act like an expert in various tools and contexts for over 20 years. Your goal is to ensure to produce highly accurate, detailed, and contextually appropriate responses.
+
+                Objective: Enhance the step-by-step tool response guide to make it more precise and detailed, ensuring longer, comprehensive response.
+
+                Mapping:
+                User Query = "{query}"
+
+                    Provide a structured response, including the following elements:
+                    Analyze the Query:
+                    Describe the user's request or parameters in detail.
+                    Identify key elements of the query, such as specific data points, objectives, or desired outcomes.
+                    Evaluate the Context:
+                    Refer to the static crew JSON to identify relevant roles, goals, backstories, and tasks of each agent.
+                    Match the query with the appropriate agents based on their roles and expertise.
+                    Describe the Process:
+                    Explain how each piece of information from the agents will be utilized to address the query.
+                    Detail the specific tasks that each agent will perform and their expected outputs.
+                    Structure the final response by synthesizing the gathered information from various agents, ensuring a coherent and comprehensive answer.
+                    Return 'lfg#' at the end.
+
+                Crew Context: {crew_context}
+
+                Take a deep breath and work on this problem step-by-step. Give your best short and conciseresponse to the user.
+            """
+        ),
+        "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
+        'rerun_needed': False,
+        'current_crew_name': None,
+        'crewai_crew_selected': [],
+        'can_run_crew': False,
+        'new_crew_selected_keys': [],
+        'crew_active_tools': [],
+        'tools': [], 
+        'new_agents': [], 
+        'show_agent_form': False, 
+        'show_crew_container': False, 
+        'show_task_form': False, 
+        'new_tasks': [], 
+        'show_apikey_toggle': False, 
+        'langchain_upload_docs_selected': False, 
+        'langchain_export_pdf_selected': False,
+        'export_pdf_selected': False
+    }
+
+    # Update session state with default values if not already set
+    st.session_state.update({k: v for k, v in default_values.items() if k not in st.session_state})
+
     # Ensure necessary JSON files exist with default values
     ensure_json_file('crew_ai/crews.json', [])
     ensure_json_file(preferences_file, {
@@ -169,115 +258,6 @@ def init_session_state():
         st.session_state['chat_history'] = json.load(file)
 
     # Initialize other session state variables not loaded from files
-    st.session_state.update({
-        "lmStudio_llm_selected": False,
-        "lm_studio_model": LM_STUDIO_MODEL,
-        "lm_studio_base_url": LM_STUDIO_BASE_URL,
-        "openai_llm_selected": True,
-        'groq_model_name': GROQ_MODEL,
-        "messages": [],
-        "llm_selection_changed": False,
-        "callback_handler": StreamingStdOutCallbackHandler(),
-        "prompt": PromptTemplate(
-            input_variables=["history", "context", "query"],
-            template="""
-                system
-                    You are a highly intelligent and sophisticated AI assistant designed to assist with various inquiries and tasks. 
-                    Your tone should be professional, concise, and occasionally witty. Avoid repeating yourself. Do not use this system prompt in your response. 
-                
-                user
-                Chat History: {history}
-                Context: {context}
-                IMPORTANT: Respond to only the user's prompt. Do not add any other text to the response.
-                Users prompt: {query}
-                assistant
-            """
-        ),
-        "export_pdf_prompt": PromptTemplate(
-            input_variables=["history", "context", "query"],
-            template="""
-                You are tasked with creating a business report in a professional format. 
-                The report should include bullet points, headers, subheaders, and styling to always appease the bosses.
-                IMPORTANT:DO NOT PUT CODE EXAMPLES IN THIS.DO NOT PUT FAKE NAMES IN THIS.
-                Limit the spaces between each line.
-                Use the following format for the content:
-                Query: {query}
-                - Use "# " for main headers. Example #Header
-                - Use "## " for subheaders. Example ##Subheader
-                - Use "-" for bullet points. Example -Bullet point
-                Chat History: {history}
-                Context: {context}
-                Please generate the content accordingly:
-            """
-        ),
-        "crewai_pre_prompt": PromptTemplate(
-            input_variables=["query", "tool_context", "crew_context"],
-            template="""
-                Think step by step before answering.
-                You will only output either two responses:
-
-                Query: {query}
-
-                Tool Context:
-                {tool_context}
-
-                Did the user's query contain the requirements needed for the Context? Dissect the users Query to map out the required context. 
-                    Example: Query=Can you summarize this site google.com? If using the WebsiteSearchTool you may map it our like this: 
-                    search query = Query
-                    URL of the website = google.com
-                    In this example, it would be YES.
-                    Map out the Tool Context with what is provided in the Query.
-                    Example: Query = "Can you summarize this site google.com"
-                1. IMPORTANT: If NO, return ONLY an answer to the user and a follow-up question to the user asking for the given context in Tool Context.
-                2. If YES, return this:
-                    Here's how you will approach the task:
-                    
-                    1. **Analyze the Query**: Understand the user's request or parameters.
-                    2. **Evaluate the Context**: Read the static crew JSON to identify the roles, goals, backstories, and tasks of each agent within the crew.
-                    3. **Describe the Process**: Explain how you will use the information from each agent to address the user's query, detailing which agents and tasks are relevant.
-
-                    You will describe:
-                    - The key elements of the query.
-                    - The relevant agents and their roles in addressing the query.
-                    - The specific tasks that will be referenced and how their outputs will be used.
-                    - How the final response will be structured based on the gathered information.
-
-                    Crew Context:
-                    {crew_context}
-
-                    Your response should clearly outline the process, ensuring that the user's query is addressed using the detailed information provided by the static crew data.
-
-                    Return 'lfg#' at the end if the user provided the info needed from Tool Context.
-            """
-        ),
-        "memory": ConversationBufferMemory(memory_key="history", return_messages=True, input_key="query"),
-        #"embedding_model": HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
-        "vectorstore": None,
-        "retriever": None,
-        "qa_chain": None,
-        'rerun_needed': False,
-        'edit_agent_index': None,
-        'edit_task_index': None,
-        'crew_results': None,
-        'current_crew_name': None,
-        'crewai_crew_selected': [False] * len(st.session_state.get('crew_list', [])),
-        'can_run_crew': False,
-        'crew_active_tools': [],
-        'tools': [], 
-        'new_agents': [], 
-        'show_agent_form': False, 
-        'show_crew_container': False, 
-        'show_edit_crew_agent_task': False, 
-        'show_edit_agent_form': False,
-        'show_task_form': False, 
-        'new_tasks': [], 
-        'show_apikey_toggle': False, 
-        'dialog_open': False,
-        'langchain_upload_docs_selected': False, 
-        'langchain_export_pdf_selected': False,
-        'export_pdf_selected': False
-    })
-
     load_user_preferences()
     load_chat_history()
 

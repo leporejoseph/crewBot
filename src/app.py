@@ -15,7 +15,6 @@ from config import (
     get_card_styles,
     get_empty_card_styles,
     initialize_app,
-    save_preferences_on_change,
     save_user_preferences,
     save_chat_history,
     clear_chat_history,
@@ -38,7 +37,6 @@ def sidebar_configuration():
     with st.sidebar.expander("**LLM Selection**", True):
         llm_selected = st.selectbox("LLM", llm_options, index=llm_options.index(st.session_state.get("current_llm", "OpenAI")))
         st.session_state.current_llm = llm_selected
-        save_preferences_on_change()  # This is correct
         selection_states = {
             "OpenAI": "openai_llm_selected", 
             "LM Studio": "lmStudio_llm_selected",
@@ -48,26 +46,29 @@ def sidebar_configuration():
         toggle_selection(selection_states[llm_selected])
 
         if st.session_state.openai_llm_selected:
-            st.text_input('Model', value=st.session_state.get("openai_api_model", OPENAI_MODEL), key='openai_api_model', on_change=save_preferences_on_change)
-            st.session_state.show_apikey_toggle = st.toggle("Show API Key", value=st.session_state.get("show_apikey_toggle", False), key='show_openai_key', on_change=save_preferences_on_change)
-            if st.session_state.show_apikey_toggle:
+            st.text_input('Model', value=st.session_state.get("openai_api_model", OPENAI_MODEL), key='openai_api_model', on_change=save_user_preferences)
+            st.toggle("Show API Key", value=st.session_state.get("show_openai_key", False), key='show_openai_key', on_change=save_user_preferences)
+            if st.session_state.show_openai_key:
                 st.text_input('OpenAI API Key', os.getenv("OPENAI_API_KEY", ""), on_change=update_api_key, key='openai_api_key')
         elif st.session_state.lmStudio_llm_selected:
-            st.text_input('Model', value=st.session_state.get("lm_studio_model", LM_STUDIO_MODEL), key='lm_studio_model', on_change=save_preferences_on_change)
-            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", LM_STUDIO_BASE_URL), key='lm_studio_base_url', on_change=save_preferences_on_change)
+            st.text_input('Model', value=st.session_state.get("lm_studio_model", LM_STUDIO_MODEL), key='lm_studio_model', on_change=save_user_preferences)
+            st.text_input('Base URL', value=st.session_state.get("lm_studio_base_url", LM_STUDIO_BASE_URL), key='lm_studio_base_url', on_change=save_user_preferences)
         elif st.session_state.groq_llm_selected:
-            st.text_input('Model Name', value=st.session_state.get("groq_model_name", GROQ_MODEL), key='groq_model_name', on_change=save_preferences_on_change)
-            st.session_state.show_apikey_toggle = st.toggle("Show API Key", value=st.session_state.get("show_apikey_toggle", False), key='show_groq_key', on_change=save_preferences_on_change)
-            if st.session_state.show_apikey_toggle:
+            st.text_input('Model Name', value=st.session_state.get("groq_model_name", GROQ_MODEL), key='groq_model_name', on_change=save_user_preferences)
+            st.toggle("Show API Key", value=st.session_state.get("show_groq_key", False), key='show_groq_key', on_change=save_user_preferences)
+            if st.session_state.show_groq_key:
                 st.text_input('Groq API Key', os.getenv("GROQ_API_KEY", ""), on_change=update_api_key, key='groq_api_key')
+
+        st.session_state.show_apikey_toggle = st.session_state.get("show_openai_key", False) or st.session_state.get("show_groq_key", False)
+        save_user_preferences()
 
         if st.button("❌ Clear Chat History"):
             clear_chat_history()
             st.toast(":robot_face: Chat History Cleared")
 
     with st.sidebar.expander("LangChain Tools :parrot: :link:", True):
-        # st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_preferences_on_change)
-        st.session_state.langchain_export_pdf_selected = st.toggle("Summarize and Export PDF", key="export_pdf_selected", value=st.session_state.get("langchain_export_pdf_selected", False), on_change=save_preferences_on_change, help="Summarizes the full chat history and exports it as a PDF file.")
+        # st.session_state.langchain_upload_docs_selected = st.toggle("Upload Documents", value=st.session_state.get("langchain_upload_docs_selected", False), on_change=save_user_preferences)
+        st.session_state.langchain_export_pdf_selected = st.toggle("Summarize and Export PDF", key="export_pdf_selected", value=st.session_state.get("langchain_export_pdf_selected", False), on_change=save_user_preferences, help="Summarizes the full chat history and exports it as a PDF file.")
 
 sidebar_configuration()
 
@@ -381,69 +382,67 @@ else:
         st.chat_message("user").write(user_input)
         chat_messages_history.add_user_message(user_input)
 
-        if any(st.session_state.crewai_crew_selected):
-        # region Run CrewAi
+        if st.session_state.new_crew_selected_keys:
+            # region Run CrewAi
             all_crews_finished = False
-            for i, selected in enumerate(st.session_state.crewai_crew_selected):
-                if selected:
-                    start_time = time.time()
-                    st.session_state[f"{st.session_state.crew_list[i]['name']}_start_time"] = start_time
-                    crew_name = st.session_state.crew_list[i]['name']
-                    st.session_state.current_crew_name = crew_name
-                    agents = st.session_state.crew_list[i]['agents']
-                    crew_context = json.dumps(st.session_state.crew_list[i])
+            for i in st.session_state.new_crew_selected_keys:
+                start_time = time.time()
+                st.session_state[f"{st.session_state.crew_list[i]['name']}_start_time"] = start_time
+                crew_name = st.session_state.crew_list[i]['name']
+                st.session_state.current_crew_name = crew_name
+                agents = st.session_state.crew_list[i]['agents']
+                crew_context = json.dumps(st.session_state.crew_list[i])
 
-                    # Update active tools based on the current crew
-                    crew = st.session_state.crew_list[i]
-                    st.session_state.crew_active_tools = set()
-                    for agent in crew["agents"]:
-                        for tool in agent.get("tools", []):
-                            st.session_state.crew_active_tools.add(tool)
-                    for task in crew["tasks"]:
-                        for tool in task.get("tools", []):
-                            st.session_state.crew_active_tools.add(tool)
+                # Update active tools based on the current crew
+                crew = st.session_state.crew_list[i]
+                st.session_state.crew_active_tools = set()
+                for agent in crew["agents"]:
+                    for tool in agent.get("tools", []):
+                        st.session_state.crew_active_tools.add(tool)
+                for task in crew["tasks"]:
+                    for tool in task.get("tools", []):
+                        st.session_state.crew_active_tools.add(tool)
 
-                    # Check if the user's input satisfies the crew's tasks requirements
-                    get_response(st.session_state.llm, user_input, "", chat_messages_history, context=crew_context)
-                    
-                    if st.session_state.can_run_crew:
+                # Check if the user's input satisfies the crew's tasks requirements
+                get_response(st.session_state.llm, user_input, "run_crew", chat_messages_history, context=crew_context)
+                
+                if st.session_state.can_run_crew:
+                    with st.chat_message("assistant"):
+                        with st.spinner(f"{crew_name} Working..."):
+                            with st.expander(f"{crew_name} Interaction Logs", False):
+                                sys.stdout = StreamToExpander(st, crew_name, agents)
+
+                                dynamic_crew_handler = DynamicCrewHandler(
+                                    name=crew_name,
+                                    memory=st.session_state.crew_list[i]["memory"],
+                                    agents=st.session_state.crew_list[i]["agents"],
+                                    tasks=st.session_state.crew_list[i]["tasks"],
+                                    llm=st.session_state.llm,
+                                    user_prompt=user_input,
+                                    chat_history=chat_messages_history,
+                                    tools=[tool for tool in st.session_state.crew_active_tools]
+                                )
+
+                                response, new_crew_data = dynamic_crew_handler.create_crew()
+                                agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
+                                st.dataframe(agent_df, hide_index=True)
+                                task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
+                                st.dataframe(task_df, hide_index=True)
+
+                                elapsed_time = time.time() - start_time
+                                st.empty().text(f"Total Time Elapsed: {elapsed_time:.2f} seconds")
+                                all_crews_finished = True
+                    if not st.session_state.langchain_export_pdf_selected:  # We will be summarizing the response in the download PDF section
                         with st.chat_message("assistant"):
-                            with st.spinner(f"{crew_name} Working..."):
-                                with st.expander(f"{crew_name} Interaction Logs", False):
-                                    sys.stdout = StreamToExpander(st, crew_name, agents)
-
-                                    dynamic_crew_handler = DynamicCrewHandler(
-                                        name=crew_name,
-                                        memory=st.session_state.crew_list[i]["memory"],
-                                        agents=st.session_state.crew_list[i]["agents"],
-                                        tasks=st.session_state.crew_list[i]["tasks"],
-                                        llm=st.session_state.llm,
-                                        user_prompt=user_input,
-                                        chat_history=chat_messages_history,
-                                        tools=[tool for tool in st.session_state.crew_active_tools]
-                                    )
-
-                                    response, new_crew_data = dynamic_crew_handler.create_crew()
-                                    agent_df = pd.DataFrame([agent['role'] for agent in st.session_state.crew_list[i]['agents']], columns=["Agents"])
-                                    st.dataframe(agent_df, hide_index=True)
-                                    task_df = pd.DataFrame([task['description'] for task in st.session_state.crew_list[i]['tasks']], columns=["Tasks"])
-                                    st.dataframe(task_df, hide_index=True)
-
-                                    elapsed_time = time.time() - start_time
-                                    st.empty().text(f"Total Time Elapsed: {elapsed_time:.2f} seconds")
-                                    all_crews_finished = True
-                        if not st.session_state.langchain_export_pdf_selected:  # We will be summarizing the response in the download PDF section
-                            with st.chat_message("assistant"):
-                                response_text = response[0] if isinstance(response, tuple) else response
-                                st.write(response_text)
-                                chat_messages_history.add_ai_message(response_text)
-                                save_chat_history()
+                            response_text = response[0] if isinstance(response, tuple) else response
+                            st.write(response_text)
+                            chat_messages_history.add_ai_message(response_text)
+                            save_chat_history()
 
             if all_crews_finished:
-                for i in range(len(st.session_state.crewai_crew_selected)):
-                    if st.session_state.crewai_crew_selected[i]:
-                        toggle_key = f"crew_{i}_selected"
-                        st.session_state[toggle_key] = False
+                for i in st.session_state.new_crew_selected_keys:
+                    st.session_state.update({f"crew_{i}_selected": False})
+                    st.session_state.new_crew_selected_keys.remove(i)
 
             # endregion
         else:
@@ -576,8 +575,15 @@ if st.session_state.rerun_needed:
 
 #endregion
 
+def update_new_crew_list():
+    new_crew_list = [
+        i for i, crew in enumerate(st.session_state.crew_list)
+        if st.session_state.get(f"crew_{i}_selected", False)
+    ]
+    st.session_state.update({"new_crew_selected_keys": new_crew_list})
+
 #region CrewAi Sidebar List
-@st.experimental_fragment
+
 def display_crew_list():
     with st.sidebar:
         with st.container(border=True):
@@ -589,10 +595,15 @@ def display_crew_list():
                 st.rerun()
 
             for i, crew in enumerate(st.session_state.crew_list):
+                crew_index_selected = f"crew_{i}_selected"
+
                 with st.expander(crew["name"], expanded=False):
-                    if i >= len(st.session_state.crewai_crew_selected):
-                        st.session_state.crewai_crew_selected.append(False)
-                    st.session_state.crewai_crew_selected[i] = st.toggle(f"Run Crew: {crew['name']}", key=f"crew_{i}_selected", value=False)
+                    st.toggle(
+                        f"Run Crew: {crew['name']}",
+                        value=st.session_state.crewai_crew_selected[i] if i < len(st.session_state.crewai_crew_selected) else False,
+                        key=crew_index_selected,
+                        on_change=update_new_crew_list
+                    )
 
                     agent_col1, task_col2 = st.columns(2)
 
