@@ -7,6 +7,14 @@ CrewBot assists users in the creation, editing, and running of a crew all within
 
 CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
+<details>
+<summary><strong>🔥 Demo</strong></summary>
+
+https://github.com/leporejoseph/crewBot/assets/57148622/f61a965f-fde0-4d10-ab62-64bf00023d91
+
+
+</details>
+
 ## Connect with Me
 | Contact Info       |                      |
 |--------------------|----------------------|
@@ -50,6 +58,9 @@ SERPER_API_KEY=Optional
 BROWSERBASE_PROJECT_ID=Optional
 ```
 
+
+
+
 ## 💻 Technology Stack
 - Python
 - Streamlit
@@ -74,8 +85,17 @@ BROWSERBASE_PROJECT_ID=Optional
 
 ### Create a Crew
 <details>
-<summary>Step-by-step guide</summary>
+<summary><strong>Demo</strong></summary>
 
+
+https://github.com/leporejoseph/crewBot/assets/57148622/21776414-ca4f-4035-a973-17a6008c05ac
+
+
+</details>
+
+<details>
+<summary>Step-by-step guide</summary>
+  
 1. Navigate to the "Create Crew" Section:
    - Go to the sidebar and click "Create a Crew."
 
