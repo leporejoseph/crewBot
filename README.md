@@ -14,6 +14,18 @@ CrewBot will ask for required agent parameters if it does not have them and need
 
 ## 🚀 Get Started 
 
+### Quick Setup with Docker
+
+To get started quickly, you can use Docker to set up the project.
+
+```sh
+# Build the Docker image
+docker build -t crewbot .
+
+# Run the Docker container
+docker run -d -p 8501:8501 --name crewbot_app crewbot
+```
+
 ### Quick Setup with Streamlit
 
 If you prefer using Streamlit, follow these steps:
