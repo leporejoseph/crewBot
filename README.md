@@ -8,16 +8,16 @@ CrewBot assists users in the creation, editing, and running of a crew all within
 CrewBot will ask for required agent parameters if it does not have them and needs them to run the crew. You can switch the LLM at any given time and clear the chat history. Chat history, user preferences, and crews are all saved locally in the project as JSON files.
 
 ## Connect with Me
-|                    | Contact Info         |
+| Contact Info       |                      |
 |--------------------|----------------------|
 | Joseph LePore  | [![Linkedin Badge](https://img.shields.io/badge/-Linkedin-blue?style=flat&logo=Linkedin&logoColor=white)](https://www.linkedin.com/in/joseph-lepore-062561b3/)    |
 
 ## 🚀 Get Started 
 
 ### Quick Setup with Docker
-
+* LM Studio Currently not supported.
+  
 To get started quickly, you can use Docker to set up the project.
-
 ```sh
 # Build the Docker image
 docker build -t crewbot .
@@ -27,9 +27,9 @@ docker run -d -p 8501:8501 --name crewbot_app crewbot
 ```
 
 ### Quick Setup with Streamlit
+* LM Studio supported.
 
 If you prefer using Streamlit, follow these steps:
-
 ```sh
 # Install the required libraries
 pip install -r requirements.txt
